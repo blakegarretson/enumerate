@@ -149,6 +149,7 @@ class BeeParser():
 
         if debug:
             print(ast.dump(ast.parse(text), indent=2))
+            print("Preprocessed text:", text)
         value = self.evaluate(text)
         return value
 
@@ -229,7 +230,10 @@ class BeeParser():
                 f"Unsupported operation: {node.__class__.__name__}")
 
     def convert(self, from_unit, to_unit):
-        return from_unit.to(to_unit.unit)
+        if isinstance(from_unit, Unit):
+            return from_unit.to(to_unit.unit)
+        else: # left side was not a unit
+            return Unit(from_unit, to_unit.unit)
 
 class BeeNotepad:
 
@@ -247,31 +251,38 @@ class BeeNotepad:
 
 if __name__ == '__main__':
     pad = BeeNotepad()
-    pad.append("1+2")
-    pad.append("pi")
-    pad.append("Unit(1,'mm')")
-    pad.append('a=2')
-    pad.append("a*3")
-    pad.append('pi=3')
-    pad.append('pi*2')
-    pad.append("2m*3in")
-    pad.append("2in*3in")
-    pad.append('1 in in mm')
-    pad.append('1    in in mm')
-    pad.append('c = 8 in')
-    pad.append('c in mm')
-    pad.append('8 % 3')
-    pad.append('50 % of 8')
-    pad.append('20% of 100')
-    pad.append('20% in ppm')
-    pad.append('20% in unitless')
-    pad.append('0.8 _ in %')
-    pad.append('40 pcf in kg/m3')
-    pad.append('40 lb/ft3 in kg/m3')
-    pad.append('40 lb/ft3 to kg/m3')
-    pad.append('2*5 in in mm')
-    pad.append('12*12 ft2 in m2')
-    pad.append('50.8mm*2in')
-    pad.append('50.8mm*2in in in2')
+    # pad.append("1+2")
+    # pad.append("pi")
+    # pad.append("Unit(1,'mm')")
+    # pad.append('a=2')
+    # pad.append("a*3")
+    # pad.append('pi=3')
+    # pad.append('pi*2')
+    # pad.append("2m*3in")
+    # pad.append("2in*3in")
+    # pad.append('1 in in mm')
+    # pad.append('1    in in mm')
+    # pad.append('c = 8 in')
+    # pad.append('c in mm')
+    # pad.append('8 % 3')
+    # pad.append('50 % of 8')
+    # pad.append('20% of 100')
+    # pad.append('20% in ppm')
+    # pad.append('20% in unitless')
+    # pad.append('0.8 _ in %')
+    # pad.append('40 pcf in kg/m3')
+    # pad.append('40 lb/ft3 in kg/m3')
+    # pad.append('40 lb/ft3 to kg/m3')
+    # pad.append('2*5 in in mm')
+    # pad.append('12*12 ft2 in m2')
+    # pad.append('50.8mm*2in')
+    # pad.append('50.8mm*2in in in2')
+    # pad.append('50.8mm*2in to in2')
+    pad.append('total = 32')
+    pad.append('rate = 8')
+    pad.append('rate/total')
+    pad.append('3 _ in m')
+    # pad._parse('rate/total in m', debug=True)
+    pad.append('rate/total in m')
     for x in pad.data:
         print(x)
