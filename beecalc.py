@@ -25,7 +25,9 @@ from unitclass import Unit
 class BeeParser():
 
     unit_re = re.compile("(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+[0-9]*)(?!\s+-*\+*[0-9])")
-    in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9]+.*$)")
+    # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*?)\s|$")
+    in_re = re.compile("\s+in\s+([^\s()]+)(\s+.*|$)")
+    # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*$)")
     to_re = re.compile("\s+to\s+")
     of_re = re.compile("%\s+of\s+")
 
@@ -103,6 +105,8 @@ class BeeParser():
             'tanh': math.tanh,
             'trunc': math.trunc,
             'ulp': math.ulp,
+            'degrees': math.degrees,
+            'radians': math.radians,
             'abs': abs,
             'bin': bin,
             'complex': complex,
@@ -119,9 +123,6 @@ class BeeParser():
 
     def parse(self, text, debug=False):
         """Preprocess input string before parsing
-        
-        The 'in' operator must come at the end of the line (along with the unit),
-        and there can only be one.
         
         The 'of' operator must come at the end of the line, only folowed by a number.
         """
@@ -143,13 +144,13 @@ class BeeParser():
             text = text[:match.start()] + ' in ' + text[match.end():]
         ## swap in Unit() call for the "to" unit
         if match := self.in_re.search(text):  
-            text = '(' + text[:match.start()] + \
-                    f') in Unit("{match.group(1)}")'
+            text = text[:match.start()] + \
+                    f' in Unit("{match.group(1)}") {match.group(2)}' 
 
 
         if debug:
-            print(ast.dump(ast.parse(text), indent=2))
             print("Preprocessed text:", text)
+            print(ast.dump(ast.parse(text), indent=2))
         value = self.evaluate(text)
         return value
 
@@ -242,8 +243,8 @@ class BeeNotepad:
         self.parser = BeeParser()
         self._parse = self.parser.parse
 
-    def append(self, text):
-        out = self._parse(text)
+    def append(self, text, debug=False):
+        out = self._parse(text, debug)
         if out:
             self.data.append((text,out))
         return out
@@ -255,38 +256,42 @@ class BeeNotepad:
 
 if __name__ == '__main__':
     pad = BeeNotepad()
-    # pad.append("1+2")
-    # pad.append("pi")
-    # pad.append("Unit(1,'mm')")
-    # pad.append('a=2')
-    # pad.append("a*3")
-    # pad.append('pi=3')
-    # pad.append('pi*2')
-    # pad.append("2m*3in")
-    # pad.append("2in*3in")
-    # pad.append('1 in in mm')
-    # pad.append('1    in in mm')
-    # pad.append('c = 8 in')
-    # pad.append('c in mm')
-    # pad.append('8 % 3')
-    # pad.append('50 % of 8')
-    # pad.append('20% of 100')
-    # pad.append('20% in ppm')
-    # pad.append('20% in unitless')
-    # pad.append('0.8 _ in %')
-    # pad.append('40 pcf in kg/m3')
-    # pad.append('40 lb/ft3 in kg/m3')
-    # pad.append('40 lb/ft3 to kg/m3')
-    # pad.append('2*5 in in mm')
-    # pad.append('12*12 ft2 in m2')
-    # pad.append('50.8mm*2in')
-    # pad.append('50.8mm*2in in in2')
-    # pad.append('50.8mm*2in to in2')
+    pad.append("1+2")
+    pad.append("pi")
+    pad.append("Unit(1,'mm')")
+    pad.append('a=2')
+    pad.append("a*3")
+    pad.append('pi=3')
+    pad.append('pi*2')
+    pad.append("2m*3in")
+    pad.append("2in*3in")
+    pad.append('1 in in mm')
+    pad.append('1    in in mm')
+    pad.append('c = 8 in')
+    pad.append('c in mm')
+    pad.append('8 % 3')
+    pad.append('50 % of 8')
+    pad.append('20% of 100')
+    pad.append('20% in ppm')
+    pad.append('20% in unitless')
+    pad.append('0.8 _ in %') #, debug=True)
+    pad.append('40 pcf in kg/m3')
+    pad.append('40 lb/ft3 in kg/m3')
+    pad.append('40 lb/ft3 to kg/m3')
+    pad.append('2*5 in in mm')
+    pad.append('12*12 ft2 in m2')
+    pad.append('50.8mm*2in')
+    pad.append('50.8mm*2in in in2')
+    pad.append('50.8mm*2in to in2')
     pad.append('total = 32')
     pad.append('rate = 8')
     pad.append('rate/total')
     pad.append('3 _ in m')
     # pad._parse('rate/total in m', debug=True)
     pad.append('rate/total in m')
+    pad.append('sin(90 deg in rad)')
+    pad.append('(6in in m) /1kg')
+    pad.append('(6in in m)/kg')
+    pad.append('(39in in m)/kg')
     for x in pad.data:
         print(x)
