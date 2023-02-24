@@ -246,6 +246,10 @@ class BeeNotepad:
         out = self._parse(text)
         if out:
             self.data.append((text,out))
+        return out
+
+    def clear(self):
+        self.data = []
 
 ####
 
