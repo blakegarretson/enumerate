@@ -26,7 +26,7 @@ class BeeParser():
 
     unit_re = re.compile("(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+[0-9]*)(?!\s+-*\+*[0-9])")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*?)\s|$")
-    in_re = re.compile("\s+in\s+([^\s()]+)(\s+.*|$)")
+    in_re = re.compile("\s+in\s+([^()]+)(\s+.*|$)")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*$)")
     to_re = re.compile("\s+to\s+")
     of_re = re.compile("%\s+of\s+")
@@ -199,6 +199,14 @@ class BeeParser():
                 raise ValueError(f"Bad Operator: {op.__class__.__name__}")
 
         elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Constant): # implied multiplication of number
+                return node.func.value * self.evaluate(node.args[0])
+            elif isinstance(node.func, ast.Name): # implied multiplication of var/const
+                const = self.const_map.get(node.func.id)
+                var = self.vars.get(node.func.id)
+                if any([var, const]):
+                    return (const or var)*self.evaluate(node.args[0])
+
             func = node.func.id
 
             if func == 'Unit':
@@ -293,5 +301,13 @@ if __name__ == '__main__':
     pad.append('(6in in m) /1kg')
     pad.append('(6in in m)/kg')
     pad.append('(39in in m)/kg')
+    pad.append('9.81m/s/s in ft/s/s')
+    pad.append('(9.81m/s/s in ft/s/s)/kg')
+    pad.append('(9.81m/s/s in ft/(s*s))/kg')
+    pad.append('5*(1+2)')
+    pad.append('5(1+2)', debug=True)
+    pad.append('a=8')
+    pad.append('a*(1+2)')
+    pad.append('a(1+2)')
     for x in pad.data:
         print(x)
