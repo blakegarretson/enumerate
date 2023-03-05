@@ -49,28 +49,13 @@ class BeeStyle(Style):
 colors = {
     'text_input': (0.9,0.9,0.9),
     'text_output': (0.9,0.9,0.9),
-    'background_input': (0.2,0.2,0.2),
-    'background_output': (0.15,0.2,0.2),
+    'background_input': (0.15,0.15,0.15),
+    'background_output': (0.15,0.15,0.15),
     'cursor': (1,0,0),
 }
 
-settings = {'fmt_str':'.10g'}
-
-class BeeCalc(App):
-    def build(self):
-        self.notepad = bc.BeeNotepad()
-
-        layout_main = BoxLayout(orientation='vertical')
-        layout_nb = BoxLayout(orientation='horizontal')
-        layout_main.add_widget(layout_nb)
-
-        self.textinput = CodeInput(text='', multiline=True, background_color=colors['background_input'],
-                              cursor_color=colors['cursor'], foreground_color=colors['text_input'], 
-                              font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.7, 1), 
-                              style=BeeStyle)
-                            #   style_name='stata-dark')
-                            #   style_name='inkpot')
-                            #   style_name='monokai')
+settings = {'fmt_str':'.10g',
+            'syntaxt_style':'custom'} # 'stata-dark', 'inkpot', 'monokai', etc.
 # ['default', 'emacs', 'friendly', 'friendly_grayscale', 'colorful', 'autumn',
 # 'murphy', 'manni', 'material', 'monokai', 'perldoc', 'pastie', 'borland',
 # 'trac', 'native', 'fruity', 'bw', 'vim', 'vs', 'tango', 'rrt', 'xcode',
@@ -80,12 +65,38 @@ class BeeCalc(App):
 # 'gruvbox-dark', 'gruvbox-light', 'dracula', 'one-dark', 'lilypond', 'nord',
 # 'nord-darker', 'github-dark']
 
+class BeeCalc(App):
+    def build(self):
+        self.notepad = bc.BeeNotepad()
+
+        layout_main = BoxLayout(orientation='vertical')
+        layout_nb = BoxLayout(orientation='horizontal')
+        layout_main.add_widget(layout_nb)
+
+        if settings['syntaxt_style'] == 'custom':
+            self.textinput = CodeInput(text='', multiline=True, background_color=colors['background_input'],
+                              cursor_color=colors['cursor'], foreground_color=colors['text_input'], 
+                              font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.7, 1), 
+                              style=BeeStyle)
+        else:
+            self.textinput = CodeInput(text='', multiline=True, background_color=colors['background_input'],
+                              cursor_color=colors['cursor'], foreground_color=colors['text_input'], 
+                              font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.7, 1), 
+                              style_name=settings['syntaxt_style'])
+
         #self.textinput.bind(text=self.on_enter)
         self.textinput.bind(text=self.on_text)
-
-        self.textoutput = TextInput(text='', multiline=True, background_color=colors['background_output'],
-                              cursor_color=colors['cursor'], foreground_color=colors['text_output'], 
-                              font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.3, 1))
+ 
+        if settings['syntaxt_style'] == 'custom':
+            self.textoutput = CodeInput(text='', multiline=True, background_color=colors['background_output'],
+                                cursor_color=colors['cursor'], foreground_color=colors['text_output'], 
+                                font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.3, 1),
+                                style=BeeStyle)
+        else:
+            self.textoutput = CodeInput(text='', multiline=True, background_color=colors['background_output'],
+                                cursor_color=colors['cursor'], foreground_color=colors['text_output'], 
+                                font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.3, 1),
+                                style_name=settings['syntaxt_style'])
 
         layout_nb.add_widget(self.textinput)
         layout_nb.add_widget(self.textoutput)
@@ -117,7 +128,7 @@ class BeeCalc(App):
                 if out:
                     self.notepad.parser.vars['ans'] = out
             except (ValueError, NameError, SyntaxError, unitclass.UnavailableUnit, 
-                    unitclass.InconsistentUnitsError, TypeError, AttributeError) as err:
+                    unitclass.InconsistentUnitsError, TypeError, AttributeError, Exception) as err:
                 print(err)
                 self.textoutput.insert_text("?\n")
                 
