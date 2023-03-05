@@ -24,17 +24,18 @@ from unitclass import Unit
 
 class BeeParser():
 
-    unit_re = re.compile("(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+[0-9]*)(?!\s+-*\+*[0-9])")
+    unit_re = re.compile("(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+\^*[0-9]*)(?!\s+-*\+*[0-9])")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*?)\s|$")
     in_re = re.compile("\s+in\s+([^()]+)(\s+.*|$)")
-    # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*$)")
+    # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*$)")P
     to_re = re.compile("\s+to\s+")
     of_re = re.compile("%\s+of\s+")
+    names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
 
     def __init__(self, vars={}) -> None:
         self.vars = vars
 
-        self.const_map = {
+        self.constants = {
             'e': math.e,
             'pi': math.pi,
             'π': math.pi,
@@ -44,7 +45,7 @@ class BeeParser():
             'τ': math.tau,
         }
 
-        self.op_map = {
+        self.operations = {
             ast.Add: operator.add,
             ast.Sub: operator.sub,
             ast.Mult: operator.mul,
@@ -57,10 +58,12 @@ class BeeParser():
             ast.BitOr: operator.or_,
             ast.BitXor: operator.pow,
             ast.BitAnd: operator.and_,
+            ast.USub: operator.neg,
+            ast.UAdd: operator.pos,
             ast.In: self.convert,
         }
 
-        self.func_map = {
+        self.functions = {
             'mod': operator.mod,
             'acos': math.acos,
             'acosh': math.acosh,
@@ -85,7 +88,7 @@ class BeeParser():
             'floor': math.floor,
             'fmod': math.fmod,
             'frexp': math.frexp,
-            'gamma': math.gamma,
+            'gamma': math.gamma, 
             'gcd': math.gcd,
             'hypot': math.hypot,
             'lcm': math.lcm,
@@ -121,16 +124,32 @@ class BeeParser():
             'round': round,
         }
 
+        self.angle_funcs = ['cos','sin','tan']
+
+    def _replacer(self, match):
+        repl = self.constants.get(match.group()) or self.vars.get(match.group())
+        if repl:
+            return str(repl)
+        else:
+            return match.group() # no replacement
+
     def parse(self, text, debug=False):
         """Preprocess input string before parsing
         
         The 'of' operator must come at the end of the line, only folowed by a number.
         """
+        text = text.replace('@', 'ans')
+        
         # process 'of' first so % doesn't get confused with the % unit
         if match := self.of_re.search(text):  
             text = '((' + text[:match.start()] + \
                     f')/100)*' + text[match.end():]
 
+
+        # preprocess vars/constants to make them work with units
+        # print("BEFORE:",text)
+        text = self.names_re.sub(self._replacer, text)
+        # print("     >:",text)
 
         # Replace implied units with Unit()
         while match := self.unit_re.search(text):
@@ -178,7 +197,13 @@ class BeeParser():
             left = self.evaluate(node.left)
             right = self.evaluate(node.right)
             try:
-                return self.op_map[type(node.op)](left, right)
+                return self.operations[type(node.op)](left, right)
+            except KeyError:
+                raise ValueError(f"Bad Operator: {node.op.__class__.__name__}")
+            
+        elif isinstance(node, ast.UnaryOp):
+            try:
+                return self.operations[type(node.op)](self.evaluate(node.operand))
             except KeyError:
                 raise ValueError(f"Bad Operator: {node.op.__class__.__name__}")
 
@@ -194,7 +219,7 @@ class BeeParser():
 
             op = node.ops[0]
             try:
-                return self.op_map[type(op)](left, right)
+                return self.operations[type(op)](left, right)
             except KeyError:
                 raise ValueError(f"Bad Operator: {op.__class__.__name__}")
 
@@ -202,7 +227,7 @@ class BeeParser():
             if isinstance(node.func, ast.Constant): # implied multiplication of number
                 return node.func.value * self.evaluate(node.args[0])
             elif isinstance(node.func, ast.Name): # implied multiplication of var/const
-                const = self.const_map.get(node.func.id)
+                const = self.constants.get(node.func.id)
                 var = self.vars.get(node.func.id)
                 if any([var, const]):
                     return (const or var)*self.evaluate(node.args[0])
@@ -212,17 +237,24 @@ class BeeParser():
             if func == 'Unit':
                 if len(node.args) == 1:
                     return Unit(node.args[0].value)
+                elif len(node.args) == 2:
+                    return Unit(self.evaluate(node.args[0]), node.args[1].value)
                 else: 
-                    return Unit(node.args[0].value, node.args[1].value)
+                    return Unit(self.evaluate(node.args[0]), node.args[1].value, node.args[2].value)
+                    # return Unit(node.args[0].value, node.args[1].value)
 
             args = [self.evaluate(arg) for arg in node.args]
 
+            if func in self.angle_funcs: # convert to radians
+                if isinstance(args[0], Unit):
+                    args[0] = args[0].to('rad')
+
             try:
-                return self.func_map[func](*args)
+                return self.functions[func](*args)
             except KeyError:
                 raise ValueError(f"Bad Function: {func}")
         elif isinstance(node, ast.Name):
-            const = self.const_map.get(node.id)
+            const = self.constants.get(node.id)
             var = self.vars.get(node.id)
             if not any([const, var]):
                 try: # could be unit with no value
@@ -250,6 +282,7 @@ class BeeNotepad:
         self.data = [] # [(inputstr, output), ...]
         self.parser = BeeParser()
         self._parse = self.parser.parse
+        self._vars = self.parser.vars
 
     def append(self, text, debug=False):
         out = self._parse(text, debug)
@@ -296,7 +329,7 @@ if __name__ == '__main__':
     pad.append('rate/total')
     pad.append('3 _ in m')
     # pad._parse('rate/total in m', debug=True)
-    pad.append('rate/total in m')
+    pad.append('rate/total')
     pad.append('sin(90 deg in rad)')
     pad.append('(6in in m) /1kg')
     pad.append('(6in in m)/kg')
@@ -305,9 +338,17 @@ if __name__ == '__main__':
     pad.append('(9.81m/s/s in ft/s/s)/kg')
     pad.append('(9.81m/s/s in ft/(s*s))/kg')
     pad.append('5*(1+2)')
-    pad.append('5(1+2)', debug=True)
+    pad.append('5(1+2)')
     pad.append('a=8')
     pad.append('a*(1+2)')
     pad.append('a(1+2)')
+    pad.append('sin(90 deg)')
+    pad.append('sin(pi/2)')
+    pad.append('sin(pi rad)', debug=True)
+    pad.append('aaa=90', debug=True)
+    pad.append('sin(aaa deg)', debug=True)
+    pad.append('sin(pi rad/2)', debug=True)
+    pad.append('-1', debug=True)
+    pad.append('+1', debug=True)
     for x in pad.data:
         print(x)
