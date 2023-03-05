@@ -30,6 +30,22 @@ from kivy.uix.codeinput import CodeInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import OptionProperty
 
+from pygments.style import Style
+from pygments.token import Token, Comment, Name, String, Number, Operator
+
+
+class BeeStyle(Style):
+
+    styles = {
+        Token.Punctuation:  '#ffeb54', # parens, commas
+        Comment:            '#ff8f73', # #comment
+        Name:               '#aff1ba', # sin(), pi 
+        # Name.Builtin:       '#aff1ba', # abs(), max(), etc.
+        String:             '#d6a9d5', # 'string'
+        Operator:           '#59a6ee', # + - / etc
+        Number:             '#f5f8f8' # 1 1.0
+    }
+
 colors = {
     'text_input': (0.9,0.9,0.9),
     'text_output': (0.9,0.9,0.9),
@@ -38,9 +54,11 @@ colors = {
     'cursor': (1,0,0),
 }
 
+settings = {'fmt_str':'.10g'}
+
 class BeeCalc(App):
     def build(self):
-        self.notebook = bc.BeeNotepad()
+        self.notepad = bc.BeeNotepad()
 
         layout_main = BoxLayout(orientation='vertical')
         layout_nb = BoxLayout(orientation='horizontal')
@@ -48,8 +66,9 @@ class BeeCalc(App):
 
         self.textinput = CodeInput(text='', multiline=True, background_color=colors['background_input'],
                               cursor_color=colors['cursor'], foreground_color=colors['text_input'], 
-                              font_name="iosevka-fixed-extendedbold", font_size="36", size_hint=(.7, 1), 
-                              style_name='stata-dark')
+                              font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.7, 1), 
+                              style=BeeStyle)
+                            #   style_name='stata-dark')
                             #   style_name='inkpot')
                             #   style_name='monokai')
 # ['default', 'emacs', 'friendly', 'friendly_grayscale', 'colorful', 'autumn',
@@ -66,7 +85,7 @@ class BeeCalc(App):
 
         self.textoutput = TextInput(text='', multiline=True, background_color=colors['background_output'],
                               cursor_color=colors['cursor'], foreground_color=colors['text_output'], 
-                              font_name="iosevka-fixed-extendedbold", font_size="36", size_hint=(.3, 1))
+                              font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.3, 1))
 
         layout_nb.add_widget(self.textinput)
         layout_nb.add_widget(self.textoutput)
@@ -76,23 +95,31 @@ class BeeCalc(App):
 
     def on_text(self, instance, value):
         # print('The widget', instance, 'have:', value)
-        self.notebook.clear()
+        self.notepad.clear()
         self.textoutput.select_all()
         self.textoutput.delete_selection()
         
         for line in value.split('\n'):
             try:
-                out = self.notebook.append(line)
+                out = self.notepad.append(line)
                 if out not in ([],): # weed out empty lines
                     if math.isclose(out, 0, abs_tol=1e-15):
                         out = 0
                         print("ROUNDED TO 0")
-                    self.textoutput.insert_text(f"{out}\n")
+                    if isinstance(out, (float,unitclass.Unit)):
+                        fmt_str = '{:'+settings["fmt_str"]+'}\n'
+                        outtext = fmt_str.format(out)
+                    else:
+                        outtext = f'{out}\n'
+                    self.textoutput.insert_text(outtext)
                 else:
                     self.textoutput.insert_text("\n")
-            except (ValueError, NameError, SyntaxError, unitclass.UnavailableUnit, TypeError) as err:
+                if out:
+                    self.notepad.parser.vars['ans'] = out
+            except (ValueError, NameError, SyntaxError, unitclass.UnavailableUnit, 
+                    unitclass.InconsistentUnitsError, TypeError, AttributeError) as err:
                 print(err)
-                self.textoutput.insert_text("-\n")
+                self.textoutput.insert_text("?\n")
                 
 
 beecalc = BeeCalc()

@@ -138,6 +138,10 @@ class BeeParser():
         
         The 'of' operator must come at the end of the line, only folowed by a number.
         """
+        
+        if '#' in text:
+            text = text[:text.find('#')]
+        
         text = text.replace('@', 'ans')
         
         # process 'of' first so % doesn't get confused with the % unit
@@ -350,5 +354,7 @@ if __name__ == '__main__':
     pad.append('sin(pi rad/2)', debug=True)
     pad.append('-1', debug=True)
     pad.append('+1', debug=True)
+    pad.append('# Comment')
+    pad.append('1+3 # Comment')
     for x in pad.data:
         print(x)
