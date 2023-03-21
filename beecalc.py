@@ -32,8 +32,8 @@ class BeeParser():
     of_re = re.compile("%\s+of\s+")
     names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
 
-    def __init__(self, vars={}) -> None:
-        self.vars = vars
+    def __init__(self, vars=None) -> None:
+        self.vars = vars or {}
 
         self.constants = {
             'e': math.e,
@@ -295,6 +295,7 @@ class BeeNotepad:
         out = self._parse(text, debug)
         if out:
             self.data.append((text,out))
+        self._vars['ans'] = out
         return out
 
     def clear(self):
