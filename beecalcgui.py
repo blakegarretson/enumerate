@@ -36,13 +36,13 @@ from pygments.token import Token, Comment, Name, String, Number, Operator
 class BeeStyle(Style):
 
     styles = {
-        Token.Punctuation:  'bold #ffeb54', # parens, commas
+        Token.Punctuation:  'bold #fff292', # parens, commas
         Comment:            'bold #ff8f73', # #comment
-        Name:               '#aff1ba', # sin(), pi 
+        Name:               'bold #aff1ba', # sin(), pi 
         # Name.Builtin:       '#aff1ba', # abs(), max(), etc.
-        String:             '#d6a9d5', # 'string'
-        Operator:           'bold #59a6ee', # + - / etc
-        Number:             '#f5f8f8' # 1 1.0
+        String:             'bold #d6a9d5', # 'string'
+        Operator:           'bold #77f6ff', # + - / etc
+        Number:             'bold #f5f8f8' # 1 1.0
     }
 
 colors = {
@@ -56,7 +56,7 @@ colors = {
 settings = {'fmt_str':'.10g',
             'font':'Roboto',
             # 'font':'RobotoMono-Regular',
-            'font_size':'16sp',
+            'font_size':'18sp',
             'syntaxt_style':'custom'} # 'stata-dark', 'inkpot', 'monokai', etc.
 # ['default', 'emacs', 'friendly', 'friendly_grayscale', 'colorful', 'autumn',
 # 'murphy', 'manni', 'material', 'monokai', 'perldoc', 'pastie', 'borland',
@@ -75,30 +75,25 @@ class BeeCalc(App):
         layout_nb = BoxLayout(orientation='horizontal')
         layout_main.add_widget(layout_nb)
 
+        textinput_params = dict(text='', multiline=True, background_color=colors['background_input'],
+                              cursor_color=colors['cursor'], foreground_color=colors['text_input'], 
+                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1))
         if settings['syntaxt_style'] == 'custom':
-            self.textinput = CodeInput(text='', multiline=True, background_color=colors['background_input'],
-                              cursor_color=colors['cursor'], foreground_color=colors['text_input'], 
-                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1), 
-                              style=BeeStyle)
+            textinput_params['style'] = BeeStyle
         else:
-            self.textinput = CodeInput(text='', multiline=True, background_color=colors['background_input'],
-                              cursor_color=colors['cursor'], foreground_color=colors['text_input'], 
-                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1), 
-                              style_name=settings['syntaxt_style'])
-
-        #self.textinput.bind(text=self.on_enter)
+            textinput_params['style_name'] = settings['syntaxt_style']
+        self.textinput = CodeInput(**textinput_params)
         self.textinput.bind(text=self.on_text)
  
+        textoutput_params = dict(text='', multiline=True, background_color=colors['background_output'],
+                                cursor_color=colors['cursor'], foreground_color=colors['text_output'], 
+                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1))
         if settings['syntaxt_style'] == 'custom':
-            self.textoutput = CodeInput(text='', multiline=True, background_color=colors['background_output'],
-                                cursor_color=colors['cursor'], foreground_color=colors['text_output'], 
-                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1), 
-                                style=BeeStyle)
+            textoutput_params['style'] = BeeStyle
         else:
-            self.textoutput = CodeInput(text='', multiline=True, background_color=colors['background_output'],
-                                cursor_color=colors['cursor'], foreground_color=colors['text_output'], 
-                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1), 
-                                style_name=settings['syntaxt_style'])
+            textoutput_params['style_name'] = settings['syntaxt_style']
+        self.textoutput = CodeInput(**textoutput_params)
+
 
         layout_nb.add_widget(self.textinput)
         layout_nb.add_widget(self.textoutput)
