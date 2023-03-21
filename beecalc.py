@@ -24,7 +24,7 @@ from unitclass import Unit
 
 class BeeParser():
 
-    unit_re = re.compile("(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+\^*[0-9]*)(?!\s+-*\+*[0-9])")
+    unit_re = re.compile("(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+(?:\^|\*\*)*[0-9]*)(?!\s+-*\+*[0-9])")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*?)\s|$")
     in_re = re.compile("\s+in\s+([^()]+)(\s+.*|$)")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*$)")P
@@ -56,7 +56,7 @@ class BeeParser():
             ast.LShift: operator.lshift,
             ast.RShift: operator.rshift,
             ast.BitOr: operator.or_,
-            ast.BitXor: operator.pow,
+            # ast.BitXor: operator.pow,
             ast.BitAnd: operator.and_,
             ast.USub: operator.neg,
             ast.UAdd: operator.pos,
@@ -138,6 +138,9 @@ class BeeParser():
         
         The 'of' operator must come at the end of the line, only folowed by a number.
         """
+        text = text.strip()
+
+        text = text.replace('^', '**')
         
         if '#' in text:
             text = text[:text.find('#')]

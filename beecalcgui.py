@@ -19,7 +19,7 @@ Bee Calc: Cross-platform notebook calculator with robust unit support
 
 """
 import beecalc as bc
-import math
+import math, re
 import kivy, unitclass
 kivy.require('1.10.0')
 
@@ -33,16 +33,15 @@ from kivy.properties import OptionProperty
 from pygments.style import Style
 from pygments.token import Token, Comment, Name, String, Number, Operator
 
-
 class BeeStyle(Style):
 
     styles = {
-        Token.Punctuation:  '#ffeb54', # parens, commas
-        Comment:            '#ff8f73', # #comment
+        Token.Punctuation:  'bold #ffeb54', # parens, commas
+        Comment:            'bold #ff8f73', # #comment
         Name:               '#aff1ba', # sin(), pi 
         # Name.Builtin:       '#aff1ba', # abs(), max(), etc.
         String:             '#d6a9d5', # 'string'
-        Operator:           '#59a6ee', # + - / etc
+        Operator:           'bold #59a6ee', # + - / etc
         Number:             '#f5f8f8' # 1 1.0
     }
 
@@ -55,6 +54,9 @@ colors = {
 }
 
 settings = {'fmt_str':'.10g',
+            'font':'Roboto',
+            # 'font':'RobotoMono-Regular',
+            'font_size':'16sp',
             'syntaxt_style':'custom'} # 'stata-dark', 'inkpot', 'monokai', etc.
 # ['default', 'emacs', 'friendly', 'friendly_grayscale', 'colorful', 'autumn',
 # 'murphy', 'manni', 'material', 'monokai', 'perldoc', 'pastie', 'borland',
@@ -76,12 +78,12 @@ class BeeCalc(App):
         if settings['syntaxt_style'] == 'custom':
             self.textinput = CodeInput(text='', multiline=True, background_color=colors['background_input'],
                               cursor_color=colors['cursor'], foreground_color=colors['text_input'], 
-                              font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.7, 1), 
+                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1), 
                               style=BeeStyle)
         else:
             self.textinput = CodeInput(text='', multiline=True, background_color=colors['background_input'],
                               cursor_color=colors['cursor'], foreground_color=colors['text_input'], 
-                              font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.7, 1), 
+                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1), 
                               style_name=settings['syntaxt_style'])
 
         #self.textinput.bind(text=self.on_enter)
@@ -90,12 +92,12 @@ class BeeCalc(App):
         if settings['syntaxt_style'] == 'custom':
             self.textoutput = CodeInput(text='', multiline=True, background_color=colors['background_output'],
                                 cursor_color=colors['cursor'], foreground_color=colors['text_output'], 
-                                font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.3, 1),
+                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1), 
                                 style=BeeStyle)
         else:
             self.textoutput = CodeInput(text='', multiline=True, background_color=colors['background_output'],
                                 cursor_color=colors['cursor'], foreground_color=colors['text_output'], 
-                                font_name="fonts/iosevka-fixed-extendedbold", font_size="36", size_hint=(.3, 1),
+                              font_name=settings['font'], font_size=settings['font_size'], size_hint=(.5, 1), 
                                 style_name=settings['syntaxt_style'])
 
         layout_nb.add_widget(self.textinput)
@@ -116,7 +118,6 @@ class BeeCalc(App):
                 if out not in ([],): # weed out empty lines
                     if math.isclose(out, 0, abs_tol=1e-15):
                         out = 0
-                        print("ROUNDED TO 0")
                     if isinstance(out, (float,unitclass.Unit)):
                         fmt_str = '{:'+settings["fmt_str"]+'}\n'
                         outtext = fmt_str.format(out)
