@@ -24,12 +24,13 @@ from unitclass import Unit
 
 class BeeParser():
 
-    unit_re = re.compile("(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+(?:\^|\*\*)*[0-9]*)(?!\s+-*\+*[0-9])")
+    # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+(?:\^|\*\*)*[0-9]*)(?!\s+-*\+*[0-9])")
+    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*?)\s|$")
-    in_re = re.compile("\s+in\s+([^()]+)(\s+.*|$)")
+    in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*$)")P
-    to_re = re.compile("\s+to\s+")
-    of_re = re.compile("%\s+of\s+")
+    to_re = re.compile(r"\s+to\s+")
+    of_re = re.compile(r"%\s+of\s+")
     names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
 
     def __init__(self, vars=None) -> None:
@@ -168,7 +169,7 @@ class BeeParser():
         ## swap "to" for "in"
         if match := self.to_re.search(text):  
             text = text[:match.start()] + ' in ' + text[match.end():]
-        ## swap in Unit() call for the "to" unit
+        ## swap in Unit() call for the "to/in" unit
         if match := self.in_re.search(text):  
             text = text[:match.start()] + \
                     f' in Unit("{match.group(1)}") {match.group(2)}' 
@@ -360,5 +361,8 @@ if __name__ == '__main__':
     pad.append('+1', debug=True)
     pad.append('# Comment')
     pad.append('1+3 # Comment')
+    pad.append('316 mm')
+    print('@@@@@')
+    pad.append('@ -300', debug=True)
     for x in pad.data:
         print(x)
