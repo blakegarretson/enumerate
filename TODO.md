@@ -1,8 +1,9 @@
 To Do
-
+- um error with ans
+- support e notation 1e6
 - tie in/out scrolling together, add scrollbar
 - add status bar
-  - error status (inconsistent units)
+- error status (inconsistent units)
   - decmial precision
   - sum and average of all numbers in output
     - Stats too? min/max/stdev, etc
