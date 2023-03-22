@@ -13,6 +13,7 @@ To Do
 - change color style
 - notebooks
 - tab completion
+- ctrl or shift plus the up arrow key should duplicate line
 - 
 
 Done
