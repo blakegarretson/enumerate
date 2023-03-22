@@ -25,7 +25,7 @@ from unitclass import Unit
 class BeeParser():
 
     # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+(?:\^|\*\*)*[0-9]*)(?!\s+-*\+*[0-9])")
-    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))")
+    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9\.eE]+)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*?)\s|$")
     in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*$)")P
@@ -372,5 +372,13 @@ if __name__ == '__main__':
     pad.append('@ -300', debug=True)
     pad.append('3in *3in', debug=True)
     pad.append('27 lb/ans in psi', debug=True)
+    pad.append('1um', debug=True)
+    pad.append('@ + 1', debug=True)
+    pad.append('1E3')
+    pad.append('1e3')
+    pad.append('1e3 mm', debug=True)
+    pad.append('10.3e3 mm', debug=True)
+    pad.append('2.6162e+07 μm', debug=True)
+    # pad.append('ans')
     for x in pad.data:
         print(x)
