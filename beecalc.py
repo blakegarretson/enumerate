@@ -33,6 +33,9 @@ class BeeParser():
     of_re = re.compile(r"%\s+of\s+")
     names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
 
+    to_specials = str.maketrans("0123456789*", "⁰¹²³⁴⁵⁶⁷⁸⁹·")
+    from_specials = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⋅·×", "0123456789***")
+
     def __init__(self, vars=None) -> None:
         self.vars = vars or {}
 
@@ -139,10 +142,10 @@ class BeeParser():
         
         The 'of' operator must come at the end of the line, only folowed by a number.
         """
-        text = text.strip()
+        print('>>', text)
+        text = text.strip().replace('^', '**')
+        print('>>>', text)
 
-        text = text.replace('^', '**')
-        
         if '#' in text:
             text = text[:text.find('#')]
         
@@ -159,12 +162,15 @@ class BeeParser():
         text = self.names_re.sub(self._replacer, text)
         # print("     >:",text)
 
+        print('7>', text)
+        text = text.translate(self.from_specials)
         # Replace implied units with Unit()
         while match := self.unit_re.search(text):
             text = text[:match.start(
             )] + f"Unit({match.group(1)}, '{match.group(2)}')" + text[match.end(
             ):]
 
+        print('8>', text)
         # process 'in' conversion
         ## swap "to" for "in"
         if match := self.to_re.search(text):  
@@ -173,7 +179,7 @@ class BeeParser():
         if match := self.in_re.search(text):  
             text = text[:match.start()] + \
                     f' in Unit("{match.group(1)}") {match.group(2)}' 
-
+        print('9>', text)
 
         if debug:
             print("Preprocessed text:", text)
@@ -364,5 +370,7 @@ if __name__ == '__main__':
     pad.append('316 mm')
     print('@@@@@')
     pad.append('@ -300', debug=True)
+    pad.append('3in *3in', debug=True)
+    pad.append('27 lb/ans in psi', debug=True)
     for x in pad.data:
         print(x)
