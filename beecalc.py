@@ -25,7 +25,7 @@ from unitclass import Unit
 class BeeParser():
 
     # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+(?:\^|\*\*)*[0-9]*)(?!\s+-*\+*[0-9])")
-    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9\.eE]+)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))")
+    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*?)\s|$")
     in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
     # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*$)")P

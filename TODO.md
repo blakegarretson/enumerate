@@ -1,6 +1,4 @@
 To Do
-- um error with ans
-- support e notation 1e6
 - tie in/out scrolling together, add scrollbar
 - add status bar
 - error status (inconsistent units)
@@ -18,6 +16,8 @@ To Do
 
 Done
 - sin(1 deg)
+- um error with ans
+- support e notation 1e6
 - implied mulitplication? 5(1+2)
 - 9.81 m/s/s in ft/s/s
 - unit should handle m^2, m^3 etc and trasform to m2, m3
