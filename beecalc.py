@@ -24,11 +24,9 @@ from unitclass import Unit
 
 class BeeParser():
 
-    # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9\.]+)\s*([a-zA-Z_Ωμ°%]+(?:\^|\*\*)*[0-9]*)(?!\s+-*\+*[0-9])")
     unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))")
-    # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*?)\s|$")
     in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
-    # in_re = re.compile("\s+in\s+([a-zA-ZΩμ°%0-9_]+.*$)")P
+    inch_re = re.compile(r"(?<![a-zA-Z ])in(?![a-zA-Z0-9])")
     to_re = re.compile(r"\s+to\s+")
     of_re = re.compile(r"%\s+of\s+")
     names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
@@ -173,13 +171,19 @@ class BeeParser():
         print('8>', text)
         # process 'in' conversion
         ## swap "to" for "in"
-        if match := self.to_re.search(text):  
+        while match := self.to_re.search(text):  
             text = text[:match.start()] + ' in ' + text[match.end():]
         ## swap in Unit() call for the "to/in" unit
-        if match := self.in_re.search(text):  
+        while match := self.in_re.search(text):  
             text = text[:match.start()] + \
                     f' in Unit("{match.group(1)}") {match.group(2)}' 
         print('9>', text)
+
+        # handle value like 4 g/(mm²·in), which turns into:
+        # Unit(4, 'g')/(mm2*in)
+        # Which gives and error because 'in' is a keyword.
+        while match := self.inch_re.search(text):  
+            text = text[:match.start()] + 'inch' + text[match.end():]
 
         if debug:
             print("Preprocessed text:", text)
@@ -378,7 +382,12 @@ if __name__ == '__main__':
     pad.append('1e3')
     pad.append('1e3 mm', debug=True)
     pad.append('10.3e3 mm', debug=True)
+    pad.append('(4m to inch)+(5m to mm)', debug=True)
     pad.append('2.6162e+07 μm', debug=True)
+    pad.append('400g/((4in in mm) * 54mm* (5in in mm))', debug=True)
+    pad.append('ans', debug=True)
+    pad.append('400g/(45mm * 54mm* 5in)')
+    pad.append('ans in pcf', debug=True)
     # pad.append('ans')
     for x in pad.data:
         print(x)
