@@ -1,6 +1,5 @@
-To Do
-- 1+1mm fails, unary operator, leave sign out of regex?
-- 
+# To Do
+
 - tie in/out scrolling together, add scrollbar
 - add status bar
 - error status (inconsistent units)
@@ -16,7 +15,8 @@ To Do
 - ctrl or shift plus the up arrow key should duplicate line
 - 
 
-Done
+## Done
+
 - sin(1 deg)
 - um error with ans
 - support e notation 1e6

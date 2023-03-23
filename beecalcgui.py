@@ -152,7 +152,7 @@ class BeeCalc(App):
                 self.textoutput.insert_text("?\n")
 
 
-Window.size = (dp(300), dp(300))
+Window.size = (dp(300), dp(250))
 
 beecalc = BeeCalc()
 beecalc.run()
