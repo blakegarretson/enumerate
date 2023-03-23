@@ -1,5 +1,5 @@
 To Do
-- (1in/1in) + 1in
+- 1+1mm fails, unary operator, leave sign out of regex?
 - 
 - tie in/out scrolling together, add scrollbar
 - add status bar
