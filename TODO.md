@@ -1,4 +1,6 @@
 To Do
+- (1in/1in) + 1in
+- 
 - tie in/out scrolling together, add scrollbar
 - add status bar
 - error status (inconsistent units)
