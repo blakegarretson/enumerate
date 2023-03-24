@@ -164,9 +164,12 @@ class BeeParser():
         text = text.translate(self.from_specials)
         # Replace implied units with Unit()
         while match := self.unit_re.search(text):
-            text = text[:match.start(
-            )] + f"Unit({match.group(1)}, '{match.group(2)}')" + text[match.end(
-            ):]
+            if match.group(2) in ('i','j'):
+                replacement = f'complex(0,{float(match.group(1))})'
+            else:
+                replacement = f"Unit({match.group(1)}, '{match.group(2)}')"
+            text = text[:match.start()] + replacement + text[match.end():]
+    
 
         print('8>', text)
         # process 'in' conversion
@@ -388,6 +391,9 @@ if __name__ == '__main__':
     pad.append('ans', debug=True)
     pad.append('400g/(45mm * 54mm* 5in)')
     pad.append('ans in pcf', debug=True)
+    pad.append('1j')
+    pad.append('1i')
+    pad.append('3+4j')
     # pad.append('ans')
     for x in pad.data:
         print(x)

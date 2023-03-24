@@ -40,13 +40,13 @@ from pygments.token import Token, Comment, Name, String, Number, Operator
 class BeeStyle(Style):
 
     styles = {
-        Token.Punctuation: 'bold #fff292',  # parens, commas
-        Comment: 'bold #ff8f73',  # #comment
-        Name: 'bold #aff1ba',  # sin(), pi 
+        Token.Punctuation: '#fff292',  # parens, commas
+        Comment: '#ff8f73',  # #comment
+        Name: '#aff1ba',  # sin(), pi 
         # Name.Builtin:       '#aff1ba', # abs(), max(), etc.
-        String: 'bold #d6a9d5',  # 'string'
-        Operator: 'bold #77f6ff',  # + - / etc
-        Number: 'bold #f5f8f8'  # 1 1.0
+        String: '#d6a9d5',  # 'string'
+        Operator: '#77f6ff',  # + - / etc
+        Number: '#f5f8f8'  # 1 1.0
     }
 
 
@@ -94,7 +94,8 @@ class BeeCalc(App):
                                 foreground_color=colors['text_input'],
                                 font_name=settings['font'],
                                 font_size=settings['font_size'],
-                                size_hint=(.6, 1))
+                                size_hint=(.6, 1),
+                                line_spacing=f'{settings["font_size_num"]*0.2}sp')
         if settings['syntaxt_style'] == 'custom':
             textinput_params['style'] = BeeStyle
         else:
@@ -109,7 +110,8 @@ class BeeCalc(App):
                                  foreground_color=colors['text_output'],
                                  font_name=settings['font'],
                                  font_size=settings['font_size'],
-                                 size_hint=(.4, 1))
+                                 size_hint=(.4, 1),
+                                line_spacing=f'{settings["font_size_num"]*0.2}sp')
         if settings['syntaxt_style'] == 'custom':
             textoutput_params['style'] = BeeStyle
         else:
@@ -132,7 +134,7 @@ class BeeCalc(App):
             try:
                 out = self.notepad.append(line)
                 if out not in ([], ):  # weed out empty lines
-                    if math.isclose(out, 0, abs_tol=1e-15):
+                    if (not isinstance(out, complex)) and math.isclose(out, 0, abs_tol=1e-15):
                         out = 0
                     if isinstance(out, (float, unitclass.Unit)):
                         fmt_str = '{:' + settings["fmt_str"] + '}\n'
