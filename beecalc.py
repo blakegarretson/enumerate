@@ -140,9 +140,9 @@ class BeeParser():
         
         The 'of' operator must come at the end of the line, only folowed by a number.
         """
-        print('>>', text)
+        # print('>>', text)
         text = text.strip().replace('^', '**')
-        print('>>>', text)
+        # print('>>>', text)
 
         if '#' in text:
             text = text[:text.find('#')]
@@ -160,7 +160,7 @@ class BeeParser():
         text = self.names_re.sub(self._replacer, text)
         # print("     >:",text)
 
-        print('7>', text)
+        # print('7>', text)
         text = text.translate(self.from_specials)
         # Replace implied units with Unit()
         while match := self.unit_re.search(text):
@@ -171,7 +171,7 @@ class BeeParser():
             text = text[:match.start()] + replacement + text[match.end():]
     
 
-        print('8>', text)
+        # print('8>', text)
         # process 'in' conversion
         ## swap "to" for "in"
         while match := self.to_re.search(text):  
@@ -180,7 +180,7 @@ class BeeParser():
         while match := self.in_re.search(text):  
             text = text[:match.start()] + \
                     f' in Unit("{match.group(1)}") {match.group(2)}' 
-        print('9>', text)
+        # print('9>', text)
 
         # handle value like 4 g/(mm²·in), which turns into:
         # Unit(4, 'g')/(mm2*in)
@@ -300,15 +300,18 @@ class BeeParser():
 class BeeNotepad:
 
     def __init__(self):
-        self.data = [] # [(inputstr, output), ...]
+        self.input = [] 
+        self.output = []
         self.parser = BeeParser()
         self._parse = self.parser.parse
         self._vars = self.parser.vars
-
+    
     def append(self, text, debug=False):
         out = self._parse(text, debug)
         if out:
-            self.data.append((text,out))
+            self.input.append(text)
+            self.output.append(out)
+
         self._vars['ans'] = out
         return out
 
@@ -356,7 +359,7 @@ if __name__ == '__main__':
     pad.append('(6in in m) /1kg')
     pad.append('(6in in m)/kg')
     pad.append('(39in in m)/kg')
-    pad.append('9.81m/s/s in ft/s/s')
+    pad.append('9.81m/1s/1s in ft/1s/1s')
     pad.append('(9.81m/s/s in ft/s/s)/kg')
     pad.append('(9.81m/s/s in ft/(s*s))/kg')
     pad.append('5*(1+2)')

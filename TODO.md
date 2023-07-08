@@ -23,3 +23,4 @@
 - implied mulitplication? 5(1+2)
 - 9.81 m/s/s in ft/s/s
 - unit should handle m^2, m^3 etc and trasform to m2, m3
+- complex numbers
