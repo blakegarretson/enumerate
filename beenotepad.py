@@ -24,7 +24,9 @@ from unitclass import Unit
 
 class BeeParser():
 
-    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))")
+    unit_re = re.compile(
+        r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))"
+    )
     in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
     inch_re = re.compile(r"(?<![a-zA-Z ])in(?![a-zA-Z0-9])")
     to_re = re.compile(r"\s+to\s+")
@@ -90,7 +92,7 @@ class BeeParser():
             'floor': math.floor,
             'fmod': math.fmod,
             'frexp': math.frexp,
-            'gamma': math.gamma, 
+            'gamma': math.gamma,
             'gcd': math.gcd,
             'hypot': math.hypot,
             'lcm': math.lcm,
@@ -126,14 +128,15 @@ class BeeParser():
             'round': round,
         }
 
-        self.angle_funcs = ['cos','sin','tan']
+        self.angle_funcs = ['cos', 'sin', 'tan']
 
     def _replacer(self, match):
-        repl = self.constants.get(match.group()) or self.vars.get(match.group())
+        repl = self.constants.get(match.group()) or self.vars.get(
+            match.group())
         if repl:
             return str(repl)
         else:
-            return match.group() # no replacement
+            return match.group()  # no replacement
 
     def parse(self, text, debug=False):
         """Preprocess input string before parsing
@@ -146,14 +149,13 @@ class BeeParser():
 
         if '#' in text:
             text = text[:text.find('#')]
-        
+
         text = text.replace('@', 'ans')
-        
+
         # process 'of' first so % doesn't get confused with the % unit
-        if match := self.of_re.search(text):  
+        if match := self.of_re.search(text):
             text = '((' + text[:match.start()] + \
                     f')/100)*' + text[match.end():]
-
 
         # preprocess vars/constants to make them work with units
         # print("BEFORE:",text)
@@ -164,28 +166,27 @@ class BeeParser():
         text = text.translate(self.from_specials)
         # Replace implied units with Unit()
         while match := self.unit_re.search(text):
-            if match.group(2) in ('i','j'):
+            if match.group(2) in ('i', 'j'):
                 replacement = f'complex(0,{float(match.group(1))})'
             else:
                 replacement = f"Unit({match.group(1)}, '{match.group(2)}')"
             text = text[:match.start()] + replacement + text[match.end():]
-    
 
         # print('8>', text)
         # process 'in' conversion
         ## swap "to" for "in"
-        while match := self.to_re.search(text):  
+        while match := self.to_re.search(text):
             text = text[:match.start()] + ' in ' + text[match.end():]
         ## swap in Unit() call for the "to/in" unit
-        while match := self.in_re.search(text):  
+        while match := self.in_re.search(text):
             text = text[:match.start()] + \
-                    f' in Unit("{match.group(1)}") {match.group(2)}' 
+                    f' in Unit("{match.group(1)}") {match.group(2)}'
         # print('9>', text)
 
         # handle value like 4 g/(mm²·in), which turns into:
         # Unit(4, 'g')/(mm2*in)
         # Which gives and error because 'in' is a keyword.
-        while match := self.inch_re.search(text):  
+        while match := self.inch_re.search(text):
             text = text[:match.start()] + 'inch' + text[match.end():]
 
         if debug:
@@ -221,10 +222,11 @@ class BeeParser():
                 return self.operations[type(node.op)](left, right)
             except KeyError:
                 raise ValueError(f"Bad Operator: {node.op.__class__.__name__}")
-            
+
         elif isinstance(node, ast.UnaryOp):
             try:
-                return self.operations[type(node.op)](self.evaluate(node.operand))
+                return self.operations[type(node.op)](self.evaluate(
+                    node.operand))
             except KeyError:
                 raise ValueError(f"Bad Operator: {node.op.__class__.__name__}")
 
@@ -245,13 +247,15 @@ class BeeParser():
                 raise ValueError(f"Bad Operator: {op.__class__.__name__}")
 
         elif isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Constant): # implied multiplication of number
+            if isinstance(node.func,
+                          ast.Constant):  # implied multiplication of number
                 return node.func.value * self.evaluate(node.args[0])
-            elif isinstance(node.func, ast.Name): # implied multiplication of var/const
+            elif isinstance(node.func,
+                            ast.Name):  # implied multiplication of var/const
                 const = self.constants.get(node.func.id)
                 var = self.vars.get(node.func.id)
                 if any([var, const]):
-                    return (const or var)*self.evaluate(node.args[0])
+                    return (const or var) * self.evaluate(node.args[0])
 
             func = node.func.id
 
@@ -259,14 +263,16 @@ class BeeParser():
                 if len(node.args) == 1:
                     return Unit(node.args[0].value)
                 elif len(node.args) == 2:
-                    return Unit(self.evaluate(node.args[0]), node.args[1].value)
-                else: 
-                    return Unit(self.evaluate(node.args[0]), node.args[1].value, node.args[2].value)
+                    return Unit(self.evaluate(node.args[0]),
+                                node.args[1].value)
+                else:
+                    return Unit(self.evaluate(node.args[0]),
+                                node.args[1].value, node.args[2].value)
                     # return Unit(node.args[0].value, node.args[1].value)
 
             args = [self.evaluate(arg) for arg in node.args]
 
-            if func in self.angle_funcs: # convert to radians
+            if func in self.angle_funcs:  # convert to radians
                 if isinstance(args[0], Unit):
                     args[0] = args[0].to('rad')
 
@@ -278,7 +284,7 @@ class BeeParser():
             const = self.constants.get(node.id)
             var = self.vars.get(node.id)
             if not any([const, var]):
-                try: # could be unit with no value
+                try:  # could be unit with no value
                     return Unit(node.id)
                 except:
                     raise ValueError(f"Bad constant or variable: {node.id}")
@@ -294,18 +300,19 @@ class BeeParser():
     def convert(self, from_unit, to_unit):
         if isinstance(from_unit, Unit):
             return from_unit.to(to_unit.unit)
-        else: # left side was not a unit
+        else:  # left side was not a unit
             return Unit(from_unit, to_unit.unit)
+
 
 class BeeNotepad:
 
     def __init__(self):
-        self.input = [] 
+        self.input = []
         self.output = []
         self.parser = BeeParser()
         self._parse = self.parser.parse
         self._vars = self.parser.vars
-    
+
     def append(self, text, debug=False):
         out = self._parse(text, debug)
         if out:
@@ -317,6 +324,7 @@ class BeeNotepad:
 
     def clear(self):
         self.data = []
+
 
 ####
 
@@ -340,7 +348,7 @@ if __name__ == '__main__':
     pad.append('20% of 100')
     pad.append('20% in ppm')
     pad.append('20% in unitless')
-    pad.append('0.8 _ in %') #, debug=True)
+    pad.append('0.8 _ in %')  #, debug=True)
     pad.append('40 pcf in kg/m3')
     pad.append('40 lb/ft3 in kg/m3')
     pad.append('40 lb/ft3 to kg/m3')
