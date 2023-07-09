@@ -7,7 +7,7 @@ import unitclass
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle,
-                             QFontComboBox, QComboBox, QColorDialog, QToolBar,
+                             QFontComboBox, QComboBox, QColorDialog, QToolBar,QMessageBox,
                              QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
 from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
                          QIcon, QFont, QFontDatabase, QKeySequence)
@@ -185,6 +185,7 @@ class MainWindow(QMainWindow):
         layout.setSpacing(0)
 
         container = QWidget()
+        self.setContentsMargins(0,0,0,0)
         container.setLayout(layout)
 
         self.makeMainToolbar()
@@ -227,11 +228,17 @@ class MainWindow(QMainWindow):
         self.changeNotepad()
 
     def deleteNotepad(self):
-        self.notepads = self.notepads[:self.current] + self.notepads[self.current+1:]
-        if not self.notepads:
-            self.notepads = ['']
-        self.notepadBox.setCurrentIndex(self.current-1)
-        self.changeNotepad()
+        messageBox = QMessageBox()
+        messageBox.setIcon(QMessageBox.Icon.Question)
+        messageBox.setText("Are you sure you want to delete the current notepad?")
+        messageBox.setStandardButtons(QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel)
+        button = messageBox.exec()
+        if button == QMessageBox.StandardButton.Yes:
+            self.notepads = self.notepads[:self.current] + self.notepads[self.current+1:]
+            if not self.notepads:
+                self.notepads = ['']
+            self.notepadBox.setCurrentIndex(self.current-1)
+            self.changeNotepad()
 
     def closeEvent(self, event):
         self.saveAll()
@@ -305,6 +312,7 @@ class MainWindow(QMainWindow):
         self.notepadBox = QComboBox(self)
         self.populateNotepadBox()
         self.notepadBox.setCurrentIndex(self.current)
+        self.notepadBox.hide()
         # self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
         # self.notepadBox.currentTextChanged.connect(self.changeNotepad)
         # self.notepadBox.setMaximumWidth(200)
@@ -322,9 +330,9 @@ class MainWindow(QMainWindow):
         # settings_button.setShortcut('Ctrl+Q')
         settings_button.triggered.connect(self.openSettings)
 
-        self.format_button = QAction("⚒", self)
+        self.format_button = QAction("Aa", self)
         font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        font.setPointSize(18)
+        font.setPointSize(16)
         self.format_button.setFont(font)
         # backColor.setShortcut('Ctrl+Q')
         self.format_button.triggered.connect(self.toggleFormatToolbar)
