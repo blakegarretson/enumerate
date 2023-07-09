@@ -99,21 +99,6 @@ def initililize_config():
     return settings, current, notepads
 
 
-settings, current, notepads = initililize_config()
-
-
-def get_notepad_text(num):
-    return "\n".join(notepads[num])
-
-
-def get_notepad_headers():
-    trim = 10
-    return [x[0][:trim] for x in notepads]
-
-def get_font_size(multiplier=1):
-    return f'{settings["font_size"]*multiplier}sp'
-
-
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -152,8 +137,7 @@ round(1.23, 4)
 
     def highlightBlock(self, text):
         for pattern, char_format in self.rules:
-            expression = QRegularExpression(pattern)
-            match_iterator = expression.globalMatch(text)
+            match_iterator = QRegularExpression(pattern).globalMatch(text)
             while match_iterator.hasNext():
                 match = match_iterator.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), char_format)
@@ -161,13 +145,18 @@ round(1.23, 4)
 
 # Subclass QMainWindow to customize your application's main window
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, settings, current, notepads):
         super().__init__()
+
+        self.settings = settings
+        self.current = current
+        self.notepads = notepads
+
         self.resize(400, 500)
         self.setWindowTitle("BeeCalc")
 
         self.notepad = beenotepad.BeeNotepad()
-        input_text = get_notepad_text(current)
+        input_text = self.getNotepadText(self.current)
 
         common_options = dict()
 
@@ -209,16 +198,43 @@ class MainWindow(QMainWindow):
         shortcut_format.activated.connect(self.toggleFormatToolbar)
         shortcut_debug = QShortcut(QKeySequence('Ctrl+Shift+D'), self)
         shortcut_debug.activated.connect(self.debug)
+        shortcut_save = QShortcut(QKeySequence('Ctrl+S'), self)
+        shortcut_save.activated.connect(self.saveAll)
 
         self.setCentralWidget(container)
 
         self.input.textChanged.connect(self.processNotepad)
         self.input.setText(input_text)
 
-    def closeEvent(self, event):
+    def getNotepadText(self, num):
+        return "\n".join(self.notepads[num])
+
+    def getNotepadHeaders(self, trim=0):
+        if trim:
+            return [x[0][:trim] for x in self.notepads]
+        else:
+            return [x[0] for x in self.notepads]
+
+    def saveAll(self):
         self.saveCurrentNotepad()
-        save_notepads(current, notepads)
-        save_settings(settings)
+        save_notepads(self.current, self.notepads)
+        save_settings(self.settings)
+
+    def addNotepad(self):
+        self.notepads.append([''])
+        self.populateNotepadBox()
+        self.notepadBox.setCurrentIndex(len(self.notepads)-1)
+        self.changeNotepad()
+
+    def deleteNotepad(self):
+        self.notepads = self.notepads[:self.current] + self.notepads[self.current+1:]
+        if not self.notepads:
+            self.notepads = ['']
+        self.notepadBox.setCurrentIndex(self.current-1)
+        self.changeNotepad()
+
+    def closeEvent(self, event):
+        self.saveAll()
         super().closeEvent(event)
 
     def syncScroll(self, value):
@@ -245,22 +261,63 @@ class MainWindow(QMainWindow):
         else:
             self.menubar.show()
 
+    def populateNotepadBox(self):
+        self.notepadBox.clear()
+        for i in self.getNotepadHeaders():
+            self.notepadBox.addItem(i)
+
+    def showNotepadPopup(self):
+        self.saveCurrentNotepad()
+        self.populateNotepadBox()
+        self.notepadBox.setCurrentIndex(self.current)
+        # self.notepadBox.currentIndexChanged.connect(self.test)
+        self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
+        self.notepadBox.showPopup()
+
+    def test(self):
+        print(f'index changed {self.notepadBox.currentIndex()}')
+    def changeNotepad(self):
+        if self.notepadBox.currentIndex() != -1:
+            # NOTE: self.saveCurrentNotepad() needs to be called in the calling fuction before calling this fuction!
+            self.current = self.notepadBox.currentIndex()
+            print(self.notepadBox.currentIndexChanged.signal)
+            # # this is a kludge for when disconnect is called without being connected first
+            # self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
+            # self.notepadBox.currentIndexChanged.disconnect()
+            self.input.setText(self.getNotepadText(self.current))
+            self.processNotepad()
+        # else:
+        # this is a kludge for when disconnect is called without being connected first
+        self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
+        self.notepadBox.currentIndexChanged.disconnect()
+
     def makeMainToolbar(self):
         # self.menu_toggle = QAction('', self)
         # self.menu_toggle.triggered.connect(self.toggle_menu_toolbar)
         # self.menu_toggle.setShortcut('Ctrl+Shift+M')
+        font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+        font.setPointSize(18)
+
+        self.notepadButton = QAction('☰', self)
+        self.notepadButton.triggered.connect(self.showNotepadPopup)
+        self.notepadButton.setFont(font)
 
         self.notepadBox = QComboBox(self)
-        for i in get_notepad_headers():
-            self.notepadBox.addItem(i)
-        self.notepadBox.setCurrentIndex(current)
-        self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
-        self.notepadBox.setMaximumWidth(200)
+        self.populateNotepadBox()
+        self.notepadBox.setCurrentIndex(self.current)
+        # self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
+        # self.notepadBox.currentTextChanged.connect(self.changeNotepad)
+        # self.notepadBox.setMaximumWidth(200)
+        self.notepadAddButton = QAction('+', self)
+        self.notepadAddButton.triggered.connect(self.addNotepad)
+        self.notepadAddButton.setFont(font)
+
+        self.notepadDeleteButton = QAction('×', self)
+        self.notepadDeleteButton.triggered.connect(self.deleteNotepad)
+        self.notepadDeleteButton.setFont(font)
 
         # backColor = QAction(QIcon("icons/highlight.png"), "Change background color", self)
         settings_button = QAction("⚙", self)
-        font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        font.setPointSize(18)
         settings_button.setFont(font)
         # settings_button.setShortcut('Ctrl+Q')
         settings_button.triggered.connect(self.openSettings)
@@ -276,9 +333,12 @@ class MainWindow(QMainWindow):
         self.menubar.setMovable(False)
         # self.menubar.setFeatures(Qt.NoDockWidgetFeatures)
 
-        self.menubar.addWidget(QLabel("Notepad:"))
-        self.menubar.addWidget(self.notepadBox)
+        self.menubar.addAction(self.notepadButton)
+        self.menubar.addAction(self.notepadAddButton)
+        self.menubar.addAction(self.notepadDeleteButton)
         self.menubar.addSeparator()
+        # self.menubar.addWidget(QLabel("Notepad:"))
+        # self.menubar.addWidget(self.notepadBox)
         self.menubar.addAction(settings_button)
         self.menubar.addAction(self.format_button)
         self.menubar.addSeparator()
@@ -329,20 +389,12 @@ class MainWindow(QMainWindow):
         # self.formatbar.addAction(backColor)
 
         self.formatbar.addSeparator()
+
     def openSettings(self):
-        print("SETTINGS!") 
+        print("SETTINGS!")
 
     def saveCurrentNotepad(self):
-        notepads[current] = self.input.toPlainText().split("\n")
-
-    def changeNotepad(self):
-        i = self.notepadBox.currentIndex()
-        self.saveCurrentNotepad()
-        global current
-        current = i
-        text = get_notepad_text(i)
-        self.input.setText(text)
-        self.processNotepad()
+        self.notepads[self.current] = self.input.toPlainText().split("\n")
 
     def changeFont(self, font):
         self.input.setFont(font)
@@ -366,7 +418,7 @@ class MainWindow(QMainWindow):
                     if (not isinstance(out, complex)) and math.isclose(out, 0, abs_tol=1e-15):
                         out = 0
                     if isinstance(out, (float, unitclass.Unit)):
-                        fmt_str = '{:' + settings["fmt_str"] + '}\n'
+                        fmt_str = '{:' + self.settings["fmt_str"] + '}\n'
                         outtext = fmt_str.format(out)
                     else:
                         outtext = f'{out}\n'
@@ -387,11 +439,10 @@ class MainWindow(QMainWindow):
 
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
-window = MainWindow()
+window = MainWindow(*initililize_config())
 app.setWindowIcon(QIcon("beecalc.png"))
 window.show()
 app.exec()
-
 
 
 # app.setStyleSheet("QWidget { color: #e6e6e6; background-color: #262626; }")
@@ -422,5 +473,3 @@ app.exec()
 #                 color: #ffffff;
 #             }
 #         """)
-
-
