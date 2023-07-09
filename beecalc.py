@@ -1,76 +1,40 @@
-"""
-Bee Calc: Cross-platform notebook calculator with robust unit support
-
-    Copyright (C) 2023  Blake T. Garretson
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-
-"""
+import sys
 import beenotepad
-import math, os, re, json
+import math
+import json
 from pathlib import Path
 import unitclass
-import kivy
 
-kivy.require('1.10.0')
-from kivy.app import App
-from kivy.config import Config
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle,
+                             QFontComboBox, QComboBox, QColorDialog, QToolBar,
+                             QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
+from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
+                         QIcon, QFont, QFontDatabase, QKeySequence)
+from PyQt6.QtCore import Qt, QRegularExpression, QCoreApplication
 
-Config.set(section='kivy',
-           option='default_font',
-           value=['DejaVuSans', 'data/fonts/DejaVuSans.ttf'])
-Config.set(section='kivy', option='window_icon', value='beecalc.png')
-from kivy.uix.button import Label, Button
-from kivy.uix.textinput import TextInput
-from kivy.uix.codeinput import CodeInput
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.spinner import Spinner, SpinnerOption
-from kivy.properties import OptionProperty
-from kivy.core.window import Window
-from kivy.metrics import dp, sp
-
-from pygments.style import Style
-from pygments.token import Token, Comment, Name, String, Number, Operator
+# import ctypes
+# ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('BTG.BeeCalc.BeeCalc.1')
 
 default_settings = dict(
     fmt_str='.10g',
     font='data/fonts/DejaVuSans.ttf',
     font_size=18,
-    syntaxt_style='custom',
-    cursor_width=3,
-    colors=dict(text_input=(0.9, 0.9, 0.9),
-                text_output=(0.9, 0.9, 0.9),
-                background_input=(0.15, 0.15, 0.15),
-                background_output=(0.15, 0.15, 0.15),
-                cursor=(1, 0, 0)),
+    cursor_width=4,
+    lines_to_scroll=2,
+    colors=dict(text_input='#e6e6e6',
+                text_output='#e6e6e6',
+                background_input='#262626',
+                background_output='#262626',
+                cursor='#ffa342'),
     styles=dict(
         punctuation='#fff292',  # parens, commas
         comment='#ff8f73',  # #comment
-        name='#aff1ba',  # sin(), pi 
+        name='#aff1ba',  # sin(), pi
         string='#d6a9d5',  # 'string'
         operator='#77f6ff',  # + - / etc
         number='#f5f8f8'  # 1 1.0
-    ))  # 'stata-dark', 'inkpot', 'monokai', etc.
-# ['default', 'emacs', 'friendly', 'friendly_grayscale', 'colorful', 'autumn',
-# 'murphy', 'manni', 'material', 'monokai', 'perldoc', 'pastie', 'borland',
-# 'trac', 'native', 'fruity', 'bw', 'vim', 'vs', 'tango', 'rrt', 'xcode',
-# 'igor', 'paraiso-light', 'paraiso-dark', 'lovelace', 'algol', 'algol_nu',
-# 'arduino', 'rainbow_dash', 'abap', 'solarized-dark', 'solarized-light', 'sas',
-# 'staroffice', 'stata', 'stata-light', 'stata-dark', 'inkpot', 'zenburn',
-# 'gruvbox-dark', 'gruvbox-light', 'dracula', 'one-dark', 'lilypond', 'nord',
-# 'nord-darker', 'github-dark']
+    ))
 
 default_notepads = {
     'current':
@@ -81,8 +45,6 @@ default_notepads = {
         'sin(90deg)', 'sin(pi/2)'
     ], ['a=1', 'b=2 # this is a comment', 'c=3', 'total=a+b+c']]
 }
-
-settings = default_settings.copy()
 
 beecalc_home = Path().home() / ".config" / "beecalc"
 beecalc_settings = beecalc_home / 'settings.json'
@@ -100,8 +62,8 @@ def save_notepads(current, notepads):
             'current': current,
             'notepads': notepads
         },
-                  jsonfile,
-                  indent=2)
+            jsonfile,
+            indent=2)
 
 
 def load_notepads():
@@ -146,152 +108,262 @@ def get_notepad_text(num):
 
 def get_notepad_headers():
     trim = 10
-    return [
-        f'{x}: {y}' for x, y in enumerate([x[0][:trim] for x in notepads], 1)
-    ]
-
+    return [x[0][:trim] for x in notepads]
 
 def get_font_size(multiplier=1):
     return f'{settings["font_size"]*multiplier}sp'
 
 
-class BeeStyle(Style):
+class BeeSyntaxHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-    styles = {
-        Token.Punctuation: settings['styles']['punctuation'],  # parens, commas
-        Comment: settings['styles']['comment'],  # #comment
-        Name: settings['styles']['name'],  # sin(), pi 
-        String: settings['styles']['string'],  # 'string'
-        Operator: settings['styles']['operator'],  # + - / etc
-        Number: settings['styles']['number']  # 1 1.0
-    }
+        self.rules = []
+
+        rule_pairs = [
+            (r'[A-Za-z]+(?:([+-/* ]|$))', '#a457a3'),  # units
+            (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", "#d6a9d5"),  # numbers
+            (r'\w+(?:\()', '#aff1ba'),  # function call
+            (r'\w+(?:\s*=)', '#3e93e9'),  # variable name
+            (r'[(),]', '#fff292'),  # punctuation e.g. parens, commas
+            (r'[+-/*=]', '#77f6ff'),  # operator
+            (r'( in )|( to )', '#ff738a'),  # conversion
+            (r'#.*$', '#ff8f73'),  # comment
+        ]
+        test = """
+123
+123.123
+123.2e43
+1e3
+3e-3
+4 g in lb
+# comment
+4 # comment
+sin(34 deg)
+a = 4
+2+3-4/4
+(43+43)
+round(1.23, 4)
+"""
+        for regexp, color in rule_pairs:
+            rule_format = QTextCharFormat()
+            rule_format.setForeground(QColor(color))
+            self.rules.append((QRegularExpression(regexp), rule_format))
+
+    def highlightBlock(self, text):
+        for pattern, char_format in self.rules:
+            expression = QRegularExpression(pattern)
+            match_iterator = expression.globalMatch(text)
+            while match_iterator.hasNext():
+                match = match_iterator.next()
+                self.setFormat(match.capturedStart(), match.capturedLength(), char_format)
 
 
-class BeeCalc(App):
+# Subclass QMainWindow to customize your application's main window
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.resize(400, 500)
+        self.setWindowTitle("BeeCalc")
 
-    def build(self):
         self.notepad = beenotepad.BeeNotepad()
         input_text = get_notepad_text(current)
 
-        layout_main = BoxLayout(orientation='vertical')
-        layout_nb = BoxLayout(orientation='horizontal')
-        mb_size = dp(30)
-        layout_menubar = BoxLayout(orientation='horizontal',
-                                   size=(0, mb_size),
-                                   size_hint=(None, None))
+        common_options = dict()
 
-        layout_menubar.add_widget(
-            Button(text='⌘', size=(mb_size, mb_size), size_hint=(None, None)))
-        layout_menubar.add_widget(
-            Button(text='+', size=(mb_size, mb_size), size_hint=(None, None)))
-        layout_menubar.add_widget(
-            Button(text='▢', size=(mb_size, mb_size), size_hint=(None, None)))
-        layout_menubar.add_widget(
-            Button(text='⚙', size=(mb_size, mb_size), size_hint=(None, None)))
-        layout_menubar.add_widget(
-            Button(text='⚒', size=(mb_size, mb_size), size_hint=(None, None)))
-        layout_menubar.add_widget(
-            Button(text='☰', size=(mb_size, mb_size), size_hint=(None, None)))
-        layout_menubar.add_widget(
-            Button(text='⚒', size=(mb_size, mb_size), size_hint=(None, None)))
-        layout_menubar.add_widget(
-            Button(text='☑', size=(mb_size, mb_size), size_hint=(None, None)))
-        layout_menubar.add_widget(
-            Button(text='☒', size=(mb_size, mb_size), size_hint=(None, None)))
-        layout_menubar.add_widget(
-            Button(text='☐', size=(mb_size, mb_size), size_hint=(None, None)))
-        headers = get_notepad_headers()
-        self.nplist = Spinner(text=headers[current],
-                              values=headers,
-                              size_hint=(None, None),
-                              size=(dp(100), dp(30)),
-                              pos_hint={
-                                  'center_x': 1,
-                                  'center_y': 0.5
-                              },
-                              sync_height=True,
-                              text_autoupdate=False)
-        #nblist.add_widget(SpinnerOption(text="One"))
-        self.nplist.bind(text=self.on_notepad_change)
-        layout_menubar.add_widget(self.nplist)
+        font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+        font.setPointSize(16)
+        self.input = QTextEdit()
+        self.input.setFont(font)
+        self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
 
-        layout_main.add_widget(layout_menubar)
-        layout_main.add_widget(layout_nb)
+        # self.input = QTextEdit(**(common_options | dict(text=input_text)))
+        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.input.document())
 
-        common_params = dict(
-            multiline=True,
-            background_color=settings['colors']['background_input'],
-            cursor_color=settings['colors']['cursor'],
-            cursor_width=settings['cursor_width'],
-            foreground_color=settings['colors']['text_input'],
-            # font_name=settings['font'],
-            font_size=get_font_size(),
-            line_spacing=get_font_size(0.2))
+        self.output = QTextEdit()
+        self.output.setFont(font)
+        self.output.setWordWrapMode(QTextOption.WrapMode.NoWrap)
+        self.syntax_highlighter_out = BeeSyntaxHighlighter(self.output.document())
 
-        textinput_params = dict(text=input_text,
-                                size_hint=(.6, 1)) | common_params
-        if settings['syntaxt_style'] == 'custom':
-            textinput_params['style'] = BeeStyle
+        self.input.verticalScrollBar().valueChanged.connect(self.syncScroll)
+        self.output.verticalScrollBar().valueChanged.connect(self.syncScroll)
+
+        # self.output.setCurrentFont(font)
+        # self.input.textChanged.connect(self.output.setText)
+        layout = QHBoxLayout()
+        layout.addWidget(self.input, stretch=3)
+        layout.addWidget(self.output, stretch=2)
+        layout.setSpacing(0)
+
+        container = QWidget()
+        container.setLayout(layout)
+
+        self.makeMainToolbar()
+        self.makeFormatToolbar()
+        self.formatbar.hide()
+
+        # shortcuts
+        shortcut_menu = QShortcut(QKeySequence('Ctrl+M'), self)
+        shortcut_menu.activated.connect(self.toggleMenuToolbar)
+        shortcut_format = QShortcut(QKeySequence('Ctrl+Shift+F'), self)
+        shortcut_format.activated.connect(self.toggleFormatToolbar)
+        shortcut_debug = QShortcut(QKeySequence('Ctrl+Shift+D'), self)
+        shortcut_debug.activated.connect(self.debug)
+
+        self.setCentralWidget(container)
+
+        self.input.textChanged.connect(self.processNotepad)
+        self.input.setText(input_text)
+
+    def closeEvent(self, event):
+        self.saveCurrentNotepad()
+        save_notepads(current, notepads)
+        save_settings(settings)
+        super().closeEvent(event)
+
+    def syncScroll(self, value):
+        print('syncing scroll')
+        sender = self.sender()
+        if sender == self.input:
+            self.output.verticalScrollBar().setValue(value)
+        elif sender == self.output:
+            self.input.verticalScrollBar().setValue(value)
+
+    def debug(self):
+        print(dir(self.input))
+
+    def toggleFormatToolbar(self):
+        if self.formatbar.isVisible():
+            self.formatbar.hide()
         else:
-            textinput_params['style_name'] = settings['syntaxt_style']
-        self.textinput = CodeInput(**textinput_params)
-        self.textinput.bind(text=self.on_text)
+            self.formatbar.show()
 
-        output_text = "".join(
-            self.process_notepad(text=input_text, getoutput=True))
-        textoutput_params = dict(text=output_text,
-                                 size_hint=(.4, 1)) | common_params
-        if settings['syntaxt_style'] == 'custom':
-            textoutput_params['style'] = BeeStyle
+    def toggleMenuToolbar(self):
+        print('TRIGGER')
+        if self.menubar.isVisible():
+            self.menubar.hide()
         else:
-            textoutput_params['style_name'] = settings['syntaxt_style']
-        self.textoutput = CodeInput(**textoutput_params)
+            self.menubar.show()
 
-        layout_nb.add_widget(self.textinput)
-        layout_nb.add_widget(self.textoutput)
-        # textinput.bind(on_text_validate=self.on_enter)
-        #self.textoutput.insert_text("DSDSSD")
-        return layout_main
+    def makeMainToolbar(self):
+        # self.menu_toggle = QAction('', self)
+        # self.menu_toggle.triggered.connect(self.toggle_menu_toolbar)
+        # self.menu_toggle.setShortcut('Ctrl+Shift+M')
 
-    def on_start(self, **kwargs):
-        pass
+        self.notepadBox = QComboBox(self)
+        for i in get_notepad_headers():
+            self.notepadBox.addItem(i)
+        self.notepadBox.setCurrentIndex(current)
+        self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
+        self.notepadBox.setMaximumWidth(200)
 
-    def save_current_notepad(self):
-        notepads[current] = self.textinput.text.split("\n")
+        # backColor = QAction(QIcon("icons/highlight.png"), "Change background color", self)
+        settings_button = QAction("⚙", self)
+        font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+        font.setPointSize(18)
+        settings_button.setFont(font)
+        # settings_button.setShortcut('Ctrl+Q')
+        settings_button.triggered.connect(self.openSettings)
 
-    def switch_notepad(self, number):
-        self.save_current_notepad()
+        self.format_button = QAction("⚒", self)
+        font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+        font.setPointSize(18)
+        self.format_button.setFont(font)
+        # backColor.setShortcut('Ctrl+Q')
+        self.format_button.triggered.connect(self.toggleFormatToolbar)
+
+        self.menubar = self.addToolBar("Main Menu")
+        self.menubar.setMovable(False)
+        # self.menubar.setFeatures(Qt.NoDockWidgetFeatures)
+
+        self.menubar.addWidget(QLabel("Notepad:"))
+        self.menubar.addWidget(self.notepadBox)
+        self.menubar.addSeparator()
+        self.menubar.addAction(settings_button)
+        self.menubar.addAction(self.format_button)
+        self.menubar.addSeparator()
+
+    def makeFormatToolbar(self):
+        fontBox = QFontComboBox(self)
+        fontBox.currentFontChanged.connect(self.changeFont)
+
+        fontSize = QComboBox(self)
+        fontSize.setEditable(True)
+
+        # Minimum number of chars displayed
+        fontSize.setMinimumContentsLength(3)
+
+        fontSize.activated.connect(self.fontSize)
+
+        # Typical font sizes
+        fontSizes = ['6', '7', '8', '9', '10', '11', '12', '13', '14',
+                     '15', '16', '18', '20', '22', '24', '26', '28',
+                     '32', '36', '40', '44', '48', '54', '60', '66',
+                     '72', '80', '88', '96']
+
+        for i in fontSizes:
+            fontSize.addItem(i)
+
+        # icon = self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon)
+        # fontColor = QAction(icon, "Change font color", self)
+        # fontColor.triggered.connect(self.change_font_color)
+
+        # backColor = QAction("⚙", self)
+        # font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+        # font.setPointSize(18)
+        # backColor.setFont(font)
+        # backColor.triggered.connect(self.highlight)
+
+        self.formatbar = QToolBar('Format')
+        self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, self.formatbar)
+        self.formatbar.setMovable(False)
+
+        # self.formatbar = self.addToolBar("Format")
+
+        self.formatbar.addWidget(fontBox)
+        self.formatbar.addWidget(fontSize)
+
+        self.formatbar.addSeparator()
+
+        # self.formatbar.addAction(fontColor)
+        # self.formatbar.addAction(backColor)
+
+        self.formatbar.addSeparator()
+    def openSettings(self):
+        print("SETTINGS!") 
+
+    def saveCurrentNotepad(self):
+        notepads[current] = self.input.toPlainText().split("\n")
+
+    def changeNotepad(self):
+        i = self.notepadBox.currentIndex()
+        self.saveCurrentNotepad()
         global current
-        current = number
-        text = get_notepad_text(number)
-        self.textinput.text = text
-        self.process_notepad()
+        current = i
+        text = get_notepad_text(i)
+        self.input.setText(text)
+        self.processNotepad()
 
-    def on_notepad_change(self, instance, value):
-        print(value)
-        number = int(value.split(":")[0]) - 1
-        self.switch_notepad(number)
+    def changeFont(self, font):
+        self.input.setFont(font)
+        self.output.setFont(font)
 
-    def on_text(self, instance, value):
-        # print('The widget', instance, 'have:', value)
-        self.process_notepad()
+    def fontSize(self, fontsize):
+        self.input.setFontPointSize(int(fontsize))
 
-    def process_notepad(self, text=False, getoutput=False):
+    # def change_font_color(self):
+    #     color = QColorDialog.getColor()
+    #     self.input.setTextColor(color)
+
+    def processNotepad(self):
         self.notepad.clear()
-        if not getoutput:
-            self.textoutput.readonly = False
-            self.textoutput.select_all()
-            self.textoutput.delete_selection()
-        print(self.textinput.text)
-        if not text:
-            text = self.textinput.text
+        self.output.setReadOnly(False)
         all_output = []
-        for line in text.split('\n'):
+        for line in self.input.toPlainText().split('\n'):
             try:
                 out = self.notepad.append(line)
                 if out not in ([], ):  # weed out empty lines
-                    if (not isinstance(out, complex)) and math.isclose(
-                            out, 0, abs_tol=1e-15):
+                    if (not isinstance(out, complex)) and math.isclose(out, 0, abs_tol=1e-15):
                         out = 0
                     if isinstance(out, (float, unitclass.Unit)):
                         fmt_str = '{:' + settings["fmt_str"] + '}\n'
@@ -308,21 +380,47 @@ class BeeCalc(App):
                     AttributeError, Exception) as err:
                 print(err)
                 outtext = "?\n"
-            if getoutput:
-                all_output.append(outtext)
-            else:
-                self.textoutput.insert_text(outtext)
-        if not getoutput:
-            self.textoutput.readonly = True
-        return all_output
-
-    def on_stop(self, **kwargs):
-        self.save_current_notepad()
-        save_notepads(current, notepads)
-        save_settings(settings)
+            all_output.append(outtext)
+        self.output.setText("".join(all_output).rstrip())
+        self.output.setReadOnly(True)
 
 
-Window.size = (dp(300), dp(250))
+app = QApplication(sys.argv)
+app.setStyle('Fusion')
+window = MainWindow()
+app.setWindowIcon(QIcon("beecalc.png"))
+window.show()
+app.exec()
 
-beecalc = BeeCalc()
-beecalc.run()
+
+
+# app.setStyleSheet("QWidget { color: #e6e6e6; background-color: #262626; }")
+
+# button = QPushButton('One')
+# button.setStyleSheet(
+#     "background-color: #262626; "
+#     "font-family: times; "
+#     "font-size: 20px;"
+# )
+
+# self.setStyleSheet("""
+#             QWidget {
+#                 background-color: #333333;
+#                 color: #ffffff;
+#             }
+#             QPushButton {
+#                 background-color: #555555;
+#                 color: #ffffff;
+#                 border: none;
+#                 padding: 5px;
+#             }
+#             QPushButton:hover {
+#                 background-color: #666666;
+#             }
+#             QLineEdit {
+#                 background-color: #444444;
+#                 color: #ffffff;
+#             }
+#         """)
+
+
