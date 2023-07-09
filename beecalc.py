@@ -22,10 +22,8 @@ default_settings = dict(
     font_size=18,
     cursor_width=4,
     lines_to_scroll=2,
-    colors=dict(text_input='#e6e6e6',
-                text_output='#e6e6e6',
-                background_input='#262626',
-                background_output='#262626',
+    colors=dict(text='#e6e6e6',
+                background='#30333d',
                 cursor='#ffa342'),
     styles=dict(
         punctuation='#fff292',  # parens, commas
@@ -152,6 +150,8 @@ class MainWindow(QMainWindow):
         self.current = current
         self.notepads = notepads
 
+        self.updateStyle()
+
         self.resize(400, 500)
         self.setWindowTitle("BeeCalc")
 
@@ -183,9 +183,11 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.input, stretch=3)
         layout.addWidget(self.output, stretch=2)
         layout.setSpacing(0)
+        layout.setContentsMargins(0,0,0,0)
 
         container = QWidget()
-        self.setContentsMargins(0,0,0,0)
+        # container.setContentsMargins(0,0,0,0)
+        # self.setContentsMargins(0,0,0,0)
         container.setLayout(layout)
 
         self.makeMainToolbar()
@@ -206,6 +208,27 @@ class MainWindow(QMainWindow):
 
         self.input.textChanged.connect(self.processNotepad)
         self.input.setText(input_text)
+    def updateStyle(self):
+        self.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.settings['colors']['background']};
+                color: {self.settings['colors']['text']};
+            }}
+                    """)
+        #     QPushButton {
+        #         background-color: #555555;
+        #         color: #ffffff;
+        #         border: none;
+        #         padding: 5px;
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #666666;
+        #     }
+        #     QLineEdit {
+        #         background-color: #444444;
+        #         color: #ffffff;
+        #     }
+        # """)
 
     def getNotepadText(self, num):
         return "\n".join(self.notepads[num])
