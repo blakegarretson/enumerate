@@ -39,6 +39,7 @@ default_settings = dict(
     fmt_str='.10g',
     font='data/fonts/DejaVuSans.ttf',
     font_size=18,
+    font_style='bold',
     cursor_width=4,
     lines_to_scroll=2,
     color_text='#e6e6e6',
@@ -124,7 +125,7 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
         self.rules = []
 
         rule_pairs = [
-            (r'[A-Za-z]+[1-4]*(?:([+-/* )]|$))', settings.style_unit),  # units
+            (r'[A-Za-z]+[1-4⁰¹²³⁴⁵⁶⁷⁸⁹]*(?:([⋅·+-/* )]|$))', settings.style_unit),  # units
             # (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", "#d6a9d5"),  # numbers
             (r'\w+(?:\()', '#aff1ba'),  # function call
             (r'\w+(?:\s*=)', '#3e93e9'),  # variable name
@@ -167,6 +168,8 @@ class MainWindow(QMainWindow):
     def __init__(self, settings, current, notepads):
         super().__init__()
 
+
+
         self.settings = settings
         self.current = current
         self.notepads = notepads
@@ -181,8 +184,30 @@ class MainWindow(QMainWindow):
 
         common_options = dict()
 
-        font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        font.setPointSize(16)
+        # font = QFont(QFont.setFamilies())
+        # font.setPointSize(16)
+
+        font_families = QFontDatabase.families()
+        font = QFont()
+        if settings.font in font_families:
+            font.setFamily(self.settings.font)
+            font.setPixelSize(self.settings.font_size)
+            if settings.font_style == 'bold':
+                font.setBold(True)
+            else:
+                font.setBold(False)
+
+        else:
+            for fontname in ['Consolas','Andale Mono', 'Courier New', 'Courier']:
+                if fontname in font_families:
+                    font.setFamily(fontname)
+                    self.settings.font = fontname
+                    print("Using", fontname, "font")
+                    break
+            font.setPixelSize(20)
+
+        # font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+        # font.setPointSize(16)
         self.input = QTextEdit()
         self.input.setFont(font)
         self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
@@ -349,12 +374,12 @@ class MainWindow(QMainWindow):
         # self.menu_toggle = QAction('', self)
         # self.menu_toggle.triggered.connect(self.toggle_menu_toolbar)
         # self.menu_toggle.setShortcut('Ctrl+Shift+M')
-        font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        font.setPointSize(18)
+        # font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+        # font.setPointSize(18)
 
         self.notepadButton = QAction('☰', self)
         self.notepadButton.triggered.connect(self.showNotepadPopup)
-        self.notepadButton.setFont(font)
+        # self.notepadButton.setFont(font)
 
         self.notepadBox = QComboBox(self)
         self.populateNotepadBox()
@@ -365,22 +390,22 @@ class MainWindow(QMainWindow):
         # self.notepadBox.setMaximumWidth(200)
         self.notepadAddButton = QAction('+', self)
         self.notepadAddButton.triggered.connect(self.addNotepad)
-        self.notepadAddButton.setFont(font)
+        # self.notepadAddButton.setFont(font)
 
         self.notepadDeleteButton = QAction('×', self)
         self.notepadDeleteButton.triggered.connect(self.deleteNotepad)
-        self.notepadDeleteButton.setFont(font)
+        # self.notepadDeleteButton.setFont(font)
 
         # backColor = QAction(QIcon("icons/highlight.png"), "Change background color", self)
         settings_button = QAction("⚙", self)
-        settings_button.setFont(font)
+        # settings_button.setFont(font)
         # settings_button.setShortcut('Ctrl+Q')
         settings_button.triggered.connect(self.openSettings)
 
         self.format_button = QAction("Aa", self)
         font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        font.setPointSize(16)
-        self.format_button.setFont(font)
+        # font.setPointSize(16)
+        # self.format_button.setFont(font)
         # backColor.setShortcut('Ctrl+Q')
         self.format_button.triggered.connect(self.toggleFormatToolbar)
 
