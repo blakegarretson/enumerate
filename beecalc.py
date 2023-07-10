@@ -7,14 +7,33 @@ import unitclass
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle,
-                             QFontComboBox, QComboBox, QColorDialog, QToolBar,QMessageBox,
+                             QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox,QDialog, QDialogButtonBox,
                              QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
 from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
                          QIcon, QFont, QFontDatabase, QKeySequence)
-from PyQt6.QtCore import Qt, QRegularExpression, QCoreApplication
+from PyQt6.QtCore import Qt, QRegularExpression, QCoreApplication, QMargins, QPoint
 
 # import ctypes
 # ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('BTG.BeeCalc.BeeCalc.1')
+
+class ConfirmationDialog(QDialog):
+    def __init__(self, parent, title, message):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(QLabel(message))
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
+
+class settingsdict(dict):
+    """Dict class with dot notation for ease of use"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
 
 default_settings = dict(
     fmt_str='.10g',
@@ -22,17 +41,18 @@ default_settings = dict(
     font_size=18,
     cursor_width=4,
     lines_to_scroll=2,
-    colors=dict(text='#e6e6e6',
-                background='#30333d',
-                cursor='#ffa342'),
-    styles=dict(
-        punctuation='#fff292',  # parens, commas
-        comment='#ff8f73',  # #comment
-        name='#aff1ba',  # sin(), pi
-        string='#d6a9d5',  # 'string'
-        operator='#77f6ff',  # + - / etc
-        number='#f5f8f8'  # 1 1.0
-    ))
+    color_text='#e6e6e6',
+    color_background='#30333d',
+    color_cursor='#ffa342',
+    style_punctuation='#fff292',  # parens, commas
+    style_comment='#ff8f73',  # #comment
+    style_function='#aff1ba',  # sin(), pi
+    style_operator='#77f6ff',  # + - / etc
+    style_variable='#3e93e9',
+    style_unit='#a457a3',
+    style_conversion='#ff738a',
+    #style_number='#f5f8f8'  # 1 1.0
+    )
 
 default_notepads = {
     'current':
@@ -72,12 +92,12 @@ def load_notepads():
 
 def save_settings(settings):
     with beecalc_settings.open('w') as jsonfile:
-        json.dump(settings, jsonfile, indent=2)
+        json.dump(dict(settings), jsonfile, indent=2)
 
 
 def load_settings():
     with beecalc_settings.open() as jsonfile:
-        return json.load(jsonfile)
+        return settingsdict(json.load(jsonfile))
 
 
 def initililize_config():
@@ -87,7 +107,7 @@ def initililize_config():
     if beecalc_settings.exists():
         settings = load_settings()
     else:
-        settings = default_settings.copy()
+        settings = settingsdict(default_settings.copy())
         save_settings(settings)
 
     if not beecalc_notepads.exists():
@@ -98,16 +118,17 @@ def initililize_config():
 
 
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         super().__init__(parent)
 
         self.rules = []
 
         rule_pairs = [
-            (r'[A-Za-z]+(?:([+-/* ]|$))', '#a457a3'),  # units
-            (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", "#d6a9d5"),  # numbers
+            (r'[A-Za-z]+[1-4]*(?:([+-/* )]|$))', settings.style_unit),  # units
+            # (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", "#d6a9d5"),  # numbers
             (r'\w+(?:\()', '#aff1ba'),  # function call
             (r'\w+(?:\s*=)', '#3e93e9'),  # variable name
+            (r'@', '#3e93e9'),  # variable name
             (r'[(),]', '#fff292'),  # punctuation e.g. parens, commas
             (r'[+-/*=]', '#77f6ff'),  # operator
             (r'( in )|( to )', '#ff738a'),  # conversion
@@ -150,7 +171,7 @@ class MainWindow(QMainWindow):
         self.current = current
         self.notepads = notepads
 
-        self.updateStyle()
+        self.updateStyle() # apply stylesheets
 
         self.resize(400, 500)
         self.setWindowTitle("BeeCalc")
@@ -167,12 +188,12 @@ class MainWindow(QMainWindow):
         self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
 
         # self.input = QTextEdit(**(common_options | dict(text=input_text)))
-        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.input.document())
+        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.settings, self.input.document())
 
         self.output = QTextEdit()
         self.output.setFont(font)
         self.output.setWordWrapMode(QTextOption.WrapMode.NoWrap)
-        self.syntax_highlighter_out = BeeSyntaxHighlighter(self.output.document())
+        self.syntax_highlighter_out = BeeSyntaxHighlighter(self.settings, self.output.document())
 
         self.input.verticalScrollBar().valueChanged.connect(self.syncScroll)
         self.output.verticalScrollBar().valueChanged.connect(self.syncScroll)
@@ -183,7 +204,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.input, stretch=3)
         layout.addWidget(self.output, stretch=2)
         layout.setSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         container = QWidget()
         # container.setContentsMargins(0,0,0,0)
@@ -208,11 +229,13 @@ class MainWindow(QMainWindow):
 
         self.input.textChanged.connect(self.processNotepad)
         self.input.setText(input_text)
+
     def updateStyle(self):
         self.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {self.settings['colors']['background']};
-                color: {self.settings['colors']['text']};
+                background-color: {self.settings.color_background};
+                color: {self.settings.color_text};
+                padding: 5px;
             }}
                     """)
         #     QPushButton {
@@ -251,16 +274,16 @@ class MainWindow(QMainWindow):
         self.changeNotepad()
 
     def deleteNotepad(self):
-        messageBox = QMessageBox()
-        messageBox.setIcon(QMessageBox.Icon.Question)
-        messageBox.setText("Are you sure you want to delete the current notepad?")
-        messageBox.setStandardButtons(QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel)
-        button = messageBox.exec()
-        if button == QMessageBox.StandardButton.Yes:
+        confirm = ConfirmationDialog(self, "Delete?", "Delete current notepad?").exec()
+        print(confirm)
+        if confirm:
+            print("deleting notepad")
             self.notepads = self.notepads[:self.current] + self.notepads[self.current+1:]
+            print(self.notepads)
             if not self.notepads:
                 self.notepads = ['']
             self.notepadBox.setCurrentIndex(self.current-1)
+            self.populateNotepadBox()
             self.changeNotepad()
 
     def closeEvent(self, event):
@@ -306,6 +329,7 @@ class MainWindow(QMainWindow):
 
     def test(self):
         print(f'index changed {self.notepadBox.currentIndex()}')
+
     def changeNotepad(self):
         if self.notepadBox.currentIndex() != -1:
             # NOTE: self.saveCurrentNotepad() needs to be called in the calling fuction before calling this fuction!
@@ -470,8 +494,8 @@ class MainWindow(QMainWindow):
 
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
-window = MainWindow(*initililize_config())
 app.setWindowIcon(QIcon("beecalc.png"))
+window = MainWindow(*initililize_config())
 window.show()
 app.exec()
 
