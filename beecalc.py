@@ -34,12 +34,11 @@ class settingsdict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-
 default_settings = dict(
     fmt_str='.10g',
-    font='data/fonts/DejaVuSans.ttf',
-    font_size=18,
-    font_style='bold',
+    font='',
+    font_size=20,
+    font_bold=False,
     cursor_width=4,
     lines_to_scroll=2,
     color_text='#e6e6e6',
@@ -50,7 +49,7 @@ default_settings = dict(
     style_function='#aff1ba',  # sin(), pi
     style_operator='#77f6ff',  # + - / etc
     style_variable='#3e93e9',
-    style_unit='#a457a3',
+    style_unit='#e196df',
     style_conversion='#ff738a',
     #style_number='#f5f8f8'  # 1 1.0
     )
@@ -187,44 +186,30 @@ class MainWindow(QMainWindow):
         # font = QFont(QFont.setFamilies())
         # font.setPointSize(16)
 
-        font_families = QFontDatabase.families()
-        font = QFont()
-        if settings.font in font_families:
-            font.setFamily(self.settings.font)
-            font.setPixelSize(self.settings.font_size)
-            if settings.font_style == 'bold':
-                font.setBold(True)
-            else:
-                font.setBold(False)
-
-        else:
+        self.font_families = QFontDatabase.families()
+        self.font = QFont()
+        if settings.font not in self.font_families:
             for fontname in ['Consolas','Andale Mono', 'Courier New', 'Courier']:
-                if fontname in font_families:
-                    font.setFamily(fontname)
+                if fontname in self.font_families:
                     self.settings.font = fontname
-                    print("Using", fontname, "font")
                     break
-            font.setPixelSize(20)
+            self.settings.font_size = 20
+            self.settings.font_bold = True
 
         # font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         # font.setPointSize(16)
         self.input = QTextEdit()
-        self.input.setFont(font)
-        self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
-
-        # self.input = QTextEdit(**(common_options | dict(text=input_text)))
-        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.settings, self.input.document())
-
         self.output = QTextEdit()
-        self.output.setFont(font)
+        self.updateFont()
+        
+        self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
+        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.settings, self.input.document())
         self.output.setWordWrapMode(QTextOption.WrapMode.NoWrap)
         self.syntax_highlighter_out = BeeSyntaxHighlighter(self.settings, self.output.document())
 
         self.input.verticalScrollBar().valueChanged.connect(self.syncScroll)
         self.output.verticalScrollBar().valueChanged.connect(self.syncScroll)
 
-        # self.output.setCurrentFont(font)
-        # self.input.textChanged.connect(self.output.setText)
         layout = QHBoxLayout()
         layout.addWidget(self.input, stretch=3)
         layout.addWidget(self.output, stretch=2)
@@ -232,8 +217,6 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
 
         container = QWidget()
-        # container.setContentsMargins(0,0,0,0)
-        # self.setContentsMargins(0,0,0,0)
         container.setLayout(layout)
 
         self.makeMainToolbar()
@@ -425,45 +408,48 @@ class MainWindow(QMainWindow):
 
     def makeFormatToolbar(self):
         fontBox = QFontComboBox(self)
+        fontBox.setCurrentFont(self.font)
+        fontBox.setMinimumContentsLength(10)
         fontBox.currentFontChanged.connect(self.changeFont)
 
-        fontSize = QComboBox(self)
-        fontSize.setEditable(True)
 
-        # Minimum number of chars displayed
-        fontSize.setMinimumContentsLength(3)
+        fontSizeBox = QComboBox(self)
+        fontSizeBox.setEditable(True)
+        fontSizeBox.setMinimumContentsLength(2)
+        font_sizes = [str(i) for i in range(8,80,2)]
+        for i in font_sizes:
+            fontSizeBox.addItem(i)
+        if str(self.settings.font_size) in font_sizes:
+            index = font_sizes.index(str(self.settings.font_size))
+            fontSizeBox.setCurrentIndex(index)
+            print(fontSizeBox.currentIndex(), fontSizeBox.currentText())
+        else:
+            fontSizeBox.setCurrentText(str(self.settings.font_size))
+        fontSizeBox.currentTextChanged.connect(self.changeFontSize)
 
-        fontSize.activated.connect(self.fontSize)
+        # fontWeightBox = QComboBox(self)
+        # fontWeightBox.setEditable(False)
+        # fontWeightBox.setMinimumContentsLength(2)
+        # font_weights = list(font_weight_map.keys())
+        # for i in font_weights:
+        #     fontWeightBox.addItem(str(i))
+        # index = font_weights.index(self.settings.font_weight)
+        # fontWeightBox.setCurrentIndex(index)
+        # fontWeightBox.currentTextChanged.connect(self.changeFontWeight)
 
-        # Typical font sizes
-        fontSizes = ['6', '7', '8', '9', '10', '11', '12', '13', '14',
-                     '15', '16', '18', '20', '22', '24', '26', '28',
-                     '32', '36', '40', '44', '48', '54', '60', '66',
-                     '72', '80', '88', '96']
-
-        for i in fontSizes:
-            fontSize.addItem(i)
-
-        # icon = self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon)
-        # fontColor = QAction(icon, "Change font color", self)
-        # fontColor.triggered.connect(self.change_font_color)
-
-        # backColor = QAction("⚙", self)
-        # font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        # font.setPointSize(18)
-        # backColor.setFont(font)
-        # backColor.triggered.connect(self.highlight)
+        self.bold = QPushButton("Bold")
+        self.bold.setCheckable(True)
+        self.bold.setChecked(True if self.settings.font_bold else False)
+        self.bold.setMaximumWidth(int(self.width()/4))
+        self.bold.clicked.connect(self.changeFontBold)
 
         self.formatbar = QToolBar('Format')
         self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, self.formatbar)
         self.formatbar.setMovable(False)
 
-        # self.formatbar = self.addToolBar("Format")
-
         self.formatbar.addWidget(fontBox)
-        self.formatbar.addWidget(fontSize)
-
-        self.formatbar.addSeparator()
+        self.formatbar.addWidget(fontSizeBox)
+        self.formatbar.addWidget(self.bold)
 
         # self.formatbar.addAction(fontColor)
         # self.formatbar.addAction(backColor)
@@ -476,12 +462,31 @@ class MainWindow(QMainWindow):
     def saveCurrentNotepad(self):
         self.notepads[self.current] = self.input.toPlainText().split("\n")
 
-    def changeFont(self, font):
-        self.input.setFont(font)
-        self.output.setFont(font)
+    def updateFont(self):
+        self.font = QFont()
+        self.font.setFamily(self.settings.font)
+        self.font.setPointSize(self.settings.font_size)
+        self.font.setWeight(800 if self.settings.font_bold else 400)
+        self.font.setBold(True if self.settings.font_bold else False)
+        self.input.setFont(self.font)
+        self.output.setFont(self.font)
 
-    def fontSize(self, fontsize):
-        self.input.setFontPointSize(int(fontsize))
+    def changeFont(self, font):
+        self.settings.font = font.family()
+        self.updateFont()
+
+    def changeFontWeight(self, font_weight):
+        print("changing weight")
+        self.settings.font_weight = font_weight
+        self.updateFont()
+
+    def changeFontSize(self, font_size):
+        self.settings.font_size = int(font_size)
+        self.updateFont()
+
+    def changeFontBold(self):
+        self.settings.font_bold = True if self.bold.isChecked() else False
+        self.updateFont()
 
     # def change_font_color(self):
     #     color = QColorDialog.getColor()
