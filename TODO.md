@@ -1,4 +1,6 @@
 # To Do
+- FIX: vars are persistent across notepad
+- FIX? vars are highlighted as units when not being set
 - add reduce() func for units
 - list funcs, units, etc.
   - command or browser?
