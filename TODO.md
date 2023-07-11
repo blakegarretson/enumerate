@@ -1,5 +1,8 @@
 # To Do
-
+- add reduce() func for units
+- list funcs, units, etc.
+  - command or browser?
+  - tab completion
 - tie in/out scrolling together, add scrollbar
 - add status bar
 - error status (inconsistent units)
@@ -10,13 +13,12 @@
   - Always on top?
 - pane resizing
 - change color style
-- notebooks
-- tab completion
 - ctrl or shift plus the up arrow key should duplicate line
 - 
 
 ## Done
 
+- notebooks
 - sin(1 deg)
 - um error with ans
 - support e notation 1e6
