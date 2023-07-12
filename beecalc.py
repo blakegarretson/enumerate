@@ -6,7 +6,7 @@ from pathlib import Path
 import unitclass
 
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle,
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle, QFrame, QSplitter,
                              QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox, QDialog, QDialogButtonBox,
                              QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
 from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
@@ -197,11 +197,11 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
                 self.setFormat(match.capturedStart(), match.capturedLength(), char_format)
 
 
-# Subclass QMainWindow to customize your application's main window
 class MainWindow(QMainWindow):
     def __init__(self, settings, current, notepads):
         super().__init__()
 
+        # self.setUnifiedTitleAndToolBarOnMac(True)
         self.settings = settings
         self.current = current
         self.notepads = notepads
@@ -213,11 +213,6 @@ class MainWindow(QMainWindow):
 
         self.notepad = beenotepad.BeeNotepad()
         input_text = self.getNotepadText(self.current)
-
-        common_options = dict()
-
-        # font = QFont(QFont.setFamilies())
-        # font.setPointSize(16)
 
         self.font_families = QFontDatabase.families()
         self.font = QFont()
@@ -231,6 +226,15 @@ class MainWindow(QMainWindow):
         # font.setPointSize(16)
         self.input = QTextEdit()
         self.output = QTextEdit()
+        splitter = QSplitter()
+        splitter.addWidget(self.input)
+        splitter.addWidget(self.output)
+        splitter.setStretchFactor(0,3)
+        splitter.setStretchFactor(1,2)
+        splitter.setHandleWidth(0)
+        splitter.setCollapsible(0,False)
+        splitter.setCollapsible(1,False)
+
         self.updateFont()
 
         self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
@@ -244,9 +248,12 @@ class MainWindow(QMainWindow):
         self.inputScrollbar.valueChanged.connect(self.syncScroll)
         self.outputScrollbar.valueChanged.connect(self.syncScroll)
 
-        layout = QHBoxLayout()
-        layout.addWidget(self.input, stretch=3)
-        layout.addWidget(self.output, stretch=2)
+        layout = QVBoxLayout()
+        layout.addWidget(splitter)
+
+        # layout = QHBoxLayout()
+        # layout.addWidget(self.input, stretch=3)
+        # layout.addWidget(self.output, stretch=2)
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -258,6 +265,10 @@ class MainWindow(QMainWindow):
         self.formatbar.hide()
 
         # shortcuts
+        shortcut_menu = QShortcut(QKeySequence('Ctrl+Q'), self)
+        shortcut_menu.activated.connect(self.deleteNotepad)
+        shortcut_menu = QShortcut(QKeySequence('Ctrl+N'), self)
+        shortcut_menu.activated.connect(self.addNotepad)
         shortcut_menu = QShortcut(QKeySequence('Ctrl+M'), self)
         shortcut_menu.activated.connect(self.toggleMenuToolbar)
         shortcut_format = QShortcut(QKeySequence('Ctrl+Shift+F'), self)
@@ -280,20 +291,7 @@ class MainWindow(QMainWindow):
                 padding: 5px 5px 10px 5px;
             }}
                     """)
-        #     QPushButton {
-        #         background-color: #555555;
-        #         color: #ffffff;
         #         border: none;
-        #         padding: 5px;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #666666;
-        #     }
-        #     QLineEdit {
-        #         background-color: #444444;
-        #         color: #ffffff;
-        #     }
-        # """)
 
     def getNotepadText(self, num):
         return "\n".join(self.notepads[num])
