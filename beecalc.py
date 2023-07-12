@@ -37,21 +37,20 @@ class settingsdict(dict):
 default_settings = dict(
     fmt_str='.10g',
     font='',
-    font_size=20,
+    font_size=16,
     font_bold=False,
     cursor_width=4,
     lines_to_scroll=2,
-    color_text='#e6e6e6',
-    color_background='#30333d',
-    color_cursor='#ffa342',
-    style_punctuation='#fff292',  # parens, commas
-    style_comment='#ff8f73',  # #comment
-    style_function='#aff1ba',  # sin(), pi
-    style_operator='#77f6ff',  # + - / etc
-    style_variable='#3e93e9',
-    style_unit='#e196df',
-    style_conversion='#ff738a',
-    #style_number='#f5f8f8'  # 1 1.0
+    color_text='#fefaf4',
+    color_background='#2c292d',
+    color_cursor='#fd9967',
+    style_comment='#ff6289',  # #comment
+    style_function='#aadc76',  # sin(), pi
+    style_operator='#ffd866',  # + - / etc
+    style_variable='#79dce8',
+    style_unit='#ab9df3',
+    style_conversion='#fd9967',
+    style_constant='#ff6289',
     )
 
 default_notepads = {
@@ -116,6 +115,9 @@ def initililize_config():
 
     return settings, current, notepads
 
+parser = beenotepad.BeeParser()
+function_list = list(parser.functions.keys())
+constant_list = list(parser.constants.keys())
 
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, settings, parent=None):
@@ -123,16 +125,18 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
 
         self.rules = []
 
-        rule_pairs = [
-            (r'[A-Za-z]+[1-4⁰¹²³⁴⁵⁶⁷⁸⁹]*(?:([⋅·+-/* )]|$))', settings.style_unit),  # units
-            # (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", "#d6a9d5"),  # numbers
-            (r'\w+(?:\()', '#aff1ba'),  # function call
-            (r'\w+(?:\s*=)', '#3e93e9'),  # variable name
-            (r'@', '#3e93e9'),  # variable name
-            (r'[(),]', '#fff292'),  # punctuation e.g. parens, commas
-            (r'[+-/*=]', '#77f6ff'),  # operator
-            (r'( in )|( to )', '#ff738a'),  # conversion
-            (r'#.*$', '#ff8f73'),  # comment
+        rule_pairs = [ # order matters below, more general go first and are overridden by more specific
+            (r'\w+\s*(?==)', settings.style_variable),  # variable name
+            (r'(?<=^|[=*-/+])\s*\w+\s*(?=([=*-/+])|( in )|$)', settings.style_variable),  # variable name
+            (r'(?<=(\d)|( in ))\s*[A-Za-z]+[1-4⁰¹²³⁴⁵⁶⁷⁸⁹]*(?=([⋅·+-/* )]|$))', settings.style_unit),  # units
+            (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", settings.color_text),  # numbers
+            ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.style_function),  # function call
+            # (r'\w+(?=\()', settings.style_function),  # function call
+            (r'@', settings.style_variable),  # variable name
+            (r'[+-/*=(),]', settings.style_operator),  # operator
+            (r'( in )|( to )', settings.style_conversion),  # conversion
+            (r'#.*$', settings.style_comment),  # comment
+            ('|'.join([rf'(\b{i}\b)' for i in constant_list]), settings.style_constant),  # comment
         ]
         test = """
 123
@@ -175,7 +179,7 @@ class MainWindow(QMainWindow):
 
         self.updateStyle() # apply stylesheets
 
-        self.resize(400, 500)
+        self.resize(500, 500)
         self.setWindowTitle("BeeCalc")
 
         self.notepad = beenotepad.BeeNotepad()
@@ -193,8 +197,6 @@ class MainWindow(QMainWindow):
                 if fontname in self.font_families:
                     self.settings.font = fontname
                     break
-            self.settings.font_size = 20
-            self.settings.font_bold = True
 
         # font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         # font.setPointSize(16)

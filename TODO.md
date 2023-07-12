@@ -1,5 +1,4 @@
 # To Do
-- FIX: vars are persistent across notepad
 - FIX? vars are highlighted as units when not being set
 - add reduce() func for units
 - list funcs, units, etc.
@@ -20,6 +19,7 @@
 
 ## Done
 
+- FIX: vars are persistent across notepad
 - notebooks
 - sin(1 deg)
 - um error with ans

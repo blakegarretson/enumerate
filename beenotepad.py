@@ -324,6 +324,7 @@ class BeeNotepad:
 
     def clear(self):
         self.data = []
+        self.parser.vars = {}
 
 
 ####
