@@ -7,7 +7,7 @@ import unitclass
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle,
-                             QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox,QDialog, QDialogButtonBox,
+                             QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox, QDialog, QDialogButtonBox,
                              QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
 from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
                          QIcon, QFont, QFontDatabase, QKeySequence)
@@ -15,6 +15,7 @@ from PyQt6.QtCore import Qt, QRegularExpression, QCoreApplication, QMargins, QPo
 
 # import ctypes
 # ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('BTG.BeeCalc.BeeCalc.1')
+
 
 class ConfirmationDialog(QDialog):
     def __init__(self, parent, title, message):
@@ -28,30 +29,72 @@ class ConfirmationDialog(QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
+
 class settingsdict(dict):
     """Dict class with dot notation for ease of use"""
     __getattr__ = dict.get
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
+
+default_themes = {
+    'Monokai': dict(
+        theme='Monokai',
+        color_text="#fefaf4",
+        color_background="#2c292d",
+        color_comment="#ff6289",
+        color_constant="#ff6289",
+        color_function="#aadc76",
+        color_operator="#ffd866",
+        color_variable="#79dce8",
+        color_unit="#ab9df3",
+        color_conversion="#fd9967",
+    ),
+    'Muted': dict(
+        theme='Muted',
+        color_text='#d3c6aa',
+        color_background='#2d353b',
+        color_comment='#e67e81',  # #comment
+        color_constant='#e67e81',
+        color_function='#a7c081',  # sin(), pi
+        color_operator='#e79875',  # + - / etc
+        color_variable='#7fbcb3',
+        color_unit='#d799b6',
+        color_conversion='#85928a',
+    ),
+    'Solarized': dict(
+        theme='Solarized',
+        color_text='#839496',
+        color_background='#002b36',
+        color_comment='#dc322f',  # #comment
+        color_constant='#d33682',
+        color_function='#268bd2',  # sin(), pi
+        color_operator='#2aa198',  # + - / etc
+        color_variable='#859900',
+        color_unit='#6c71c4',
+        color_conversion='#cb4b16',
+    ),
+    'Light': dict(
+        theme='Light',
+        color_text='#000000',
+        color_background='#ffffff',
+        color_comment='#f25c02',  # #comment
+        color_constant='#f92f77',
+        color_function='#268509',  # sin(), pi
+        color_operator='#f92f77',  # + - / etc
+        color_variable='#2c92b0',
+        color_unit='#4553bf',
+        color_conversion='#fe9720',
+    )
+
+}
+
 default_settings = dict(
     fmt_str='.10g',
     font='',
     font_size=16,
     font_bold=False,
-    cursor_width=4,
-    lines_to_scroll=2,
-    color_text='#fefaf4',
-    color_background='#2c292d',
-    color_cursor='#fd9967',
-    style_comment='#ff6289',  # #comment
-    style_function='#aadc76',  # sin(), pi
-    style_operator='#ffd866',  # + - / etc
-    style_variable='#79dce8',
-    style_unit='#ab9df3',
-    style_conversion='#fd9967',
-    style_constant='#ff6289',
-    )
+) | default_themes['Monokai']
 
 default_notepads = {
     'current':
@@ -115,9 +158,11 @@ def initililize_config():
 
     return settings, current, notepads
 
+
 parser = beenotepad.BeeParser()
 function_list = list(parser.functions.keys())
 constant_list = list(parser.constants.keys())
+
 
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, settings, parent=None):
@@ -125,34 +170,20 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
 
         self.rules = []
 
-        rule_pairs = [ # order matters below, more general go first and are overridden by more specific
-            (r'\w+\s*(?==)', settings.style_variable),  # variable name
-            (r'(?<=^|[=*-/+])\s*\w+\s*(?=([=*-/+])|( in )|$)', settings.style_variable),  # variable name
-            (r'(?<=(\d)|( in ))\s*[A-Za-z]+[1-4⁰¹²³⁴⁵⁶⁷⁸⁹]*(?=([⋅·+-/* )]|$))', settings.style_unit),  # units
+        rule_pairs = [  # order matters below, more general go first and are overridden by more specific
+            (r'\w+\s*(?==)', settings.color_variable),  # variable name
+            (r'(?<=^|[=*-/+])\s*\w+\s*(?=([=*-/+])|( in )|$)', settings.color_variable),  # variable name
+            (r'(?<=(\d)|( in ))\s*[A-Za-z]+[1-4⁰¹²³⁴⁵⁶⁷⁸⁹]*(?=([⋅·+-/* )]|$))', settings.color_unit),  # units
             (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", settings.color_text),  # numbers
-            ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.style_function),  # function call
+            ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.color_function),  # function call
             # (r'\w+(?=\()', settings.style_function),  # function call
-            (r'@', settings.style_variable),  # variable name
-            (r'[+-/*=(),]', settings.style_operator),  # operator
-            (r'( in )|( to )', settings.style_conversion),  # conversion
-            (r'#.*$', settings.style_comment),  # comment
-            ('|'.join([rf'(\b{i}\b)' for i in constant_list]), settings.style_constant),  # comment
+            (r'@', settings.color_variable),  # variable name
+            (r'[+-/*=(),]', settings.color_operator),  # operator
+            (r'( in )|( to )', settings.color_conversion),  # conversion
+            (r'#.*$', settings.color_comment),  # comment
+            ('|'.join([rf'(\b{i}\b)' for i in constant_list]), settings.color_constant),  # comment
         ]
-        test = """
-123
-123.123
-123.2e43
-1e3
-3e-3
-4 g in lb
-# comment
-4 # comment
-sin(34 deg)
-a = 4
-2+3-4/4
-(43+43)
-round(1.23, 4)
-"""
+
         for regexp, color in rule_pairs:
             rule_format = QTextCharFormat()
             rule_format.setForeground(QColor(color))
@@ -171,13 +202,11 @@ class MainWindow(QMainWindow):
     def __init__(self, settings, current, notepads):
         super().__init__()
 
-
-
         self.settings = settings
         self.current = current
         self.notepads = notepads
 
-        self.updateStyle() # apply stylesheets
+        self.updateStyle()  # apply stylesheets
 
         self.resize(500, 500)
         self.setWindowTitle("BeeCalc")
@@ -193,7 +222,7 @@ class MainWindow(QMainWindow):
         self.font_families = QFontDatabase.families()
         self.font = QFont()
         if settings.font not in self.font_families:
-            for fontname in ['Consolas','Andale Mono', 'Courier New', 'Courier']:
+            for fontname in ['Consolas', 'Andale Mono', 'Courier New', 'Courier']:
                 if fontname in self.font_families:
                     self.settings.font = fontname
                     break
@@ -203,14 +232,17 @@ class MainWindow(QMainWindow):
         self.input = QTextEdit()
         self.output = QTextEdit()
         self.updateFont()
-        
+
         self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
-        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.settings, self.input.document())
         self.output.setWordWrapMode(QTextOption.WrapMode.NoWrap)
+        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.settings, self.input.document())
         self.syntax_highlighter_out = BeeSyntaxHighlighter(self.settings, self.output.document())
 
-        self.input.verticalScrollBar().valueChanged.connect(self.syncScroll)
-        self.output.verticalScrollBar().valueChanged.connect(self.syncScroll)
+        self.inputScrollbar = self.input.verticalScrollBar()
+        self.inputScrollbar.hide()
+        self.outputScrollbar = self.output.verticalScrollBar()
+        self.inputScrollbar.valueChanged.connect(self.syncScroll)
+        self.outputScrollbar.valueChanged.connect(self.syncScroll)
 
         layout = QHBoxLayout()
         layout.addWidget(self.input, stretch=3)
@@ -245,7 +277,7 @@ class MainWindow(QMainWindow):
             QTextEdit {{
                 background-color: {self.settings.color_background};
                 color: {self.settings.color_text};
-                padding: 5px;
+                padding: 5px 5px 10px 5px;
             }}
                     """)
         #     QPushButton {
@@ -301,11 +333,10 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def syncScroll(self, value):
-        print('syncing scroll')
         sender = self.sender()
-        if sender == self.input:
+        if sender == self.inputScrollbar:
             self.output.verticalScrollBar().setValue(value)
-        elif sender == self.output:
+        elif sender == self.outputScrollbar:
             self.input.verticalScrollBar().setValue(value)
 
     def debug(self):
@@ -414,36 +445,34 @@ class MainWindow(QMainWindow):
         fontBox.setMinimumContentsLength(10)
         fontBox.currentFontChanged.connect(self.changeFont)
 
-
         fontSizeBox = QComboBox(self)
         fontSizeBox.setEditable(True)
         fontSizeBox.setMinimumContentsLength(2)
-        font_sizes = [str(i) for i in range(8,80,2)]
+        font_sizes = [str(i) for i in range(8, 80, 2)]
         for i in font_sizes:
             fontSizeBox.addItem(i)
         if str(self.settings.font_size) in font_sizes:
             index = font_sizes.index(str(self.settings.font_size))
             fontSizeBox.setCurrentIndex(index)
-            print(fontSizeBox.currentIndex(), fontSizeBox.currentText())
         else:
             fontSizeBox.setCurrentText(str(self.settings.font_size))
         fontSizeBox.currentTextChanged.connect(self.changeFontSize)
-
-        # fontWeightBox = QComboBox(self)
-        # fontWeightBox.setEditable(False)
-        # fontWeightBox.setMinimumContentsLength(2)
-        # font_weights = list(font_weight_map.keys())
-        # for i in font_weights:
-        #     fontWeightBox.addItem(str(i))
-        # index = font_weights.index(self.settings.font_weight)
-        # fontWeightBox.setCurrentIndex(index)
-        # fontWeightBox.currentTextChanged.connect(self.changeFontWeight)
 
         self.bold = QPushButton("Bold")
         self.bold.setCheckable(True)
         self.bold.setChecked(True if self.settings.font_bold else False)
         self.bold.setMaximumWidth(int(self.width()/4))
         self.bold.clicked.connect(self.changeFontBold)
+
+        themeBox = QComboBox(self)
+        themeBox.setEditable(False)
+        themeBox.setMinimumContentsLength(12)
+        themes = list(default_themes.keys())
+        for i in themes:
+            themeBox.addItem(i)
+        index = themes.index(self.settings.theme)
+        themeBox.setCurrentIndex(index)
+        themeBox.currentTextChanged.connect(self.changeTheme)
 
         self.formatbar = QToolBar('Format')
         self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, self.formatbar)
@@ -452,11 +481,19 @@ class MainWindow(QMainWindow):
         self.formatbar.addWidget(fontBox)
         self.formatbar.addWidget(fontSizeBox)
         self.formatbar.addWidget(self.bold)
+        self.formatbar.addWidget(themeBox)
 
         # self.formatbar.addAction(fontColor)
         # self.formatbar.addAction(backColor)
 
-        self.formatbar.addSeparator()
+        # self.formatbar.addSeparator()
+
+    def changeTheme(self, theme):
+        print(theme)
+        self.settings = settingsdict(self.settings | default_themes[theme])
+        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.settings, self.input.document())
+        self.syntax_highlighter_out = BeeSyntaxHighlighter(self.settings, self.output.document())
+        self.updateStyle()
 
     def openSettings(self):
         print("SETTINGS!")
@@ -520,7 +557,7 @@ class MainWindow(QMainWindow):
                 print(err)
                 outtext = "?\n"
             all_output.append(outtext)
-        self.output.setText("".join(all_output).rstrip())
+        self.output.setText("".join(all_output)[:-1])
         self.output.setReadOnly(True)
 
 
