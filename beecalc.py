@@ -7,7 +7,7 @@ import unitclass
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle, QFrame, QSplitter,
-                             QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox, QDialog, QDialogButtonBox,
+                             QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox, QDialog, QDialogButtonBox,QSizePolicy,
                              QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
 from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
                          QIcon, QFont, QFontDatabase, QKeySequence)
@@ -429,13 +429,16 @@ class MainWindow(QMainWindow):
 
         self.menubar.addAction(self.notepadButton)
         self.menubar.addAction(self.notepadAddButton)
-        self.menubar.addAction(self.notepadDeleteButton)
         self.menubar.addSeparator()
         # self.menubar.addWidget(QLabel("Notepad:"))
         # self.menubar.addWidget(self.notepadBox)
         self.menubar.addAction(settings_button)
         self.menubar.addAction(self.format_button)
-        self.menubar.addSeparator()
+        
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.menubar.addWidget(spacer)
+        self.menubar.addAction(self.notepadDeleteButton)
 
     def makeFormatToolbar(self):
         fontBox = QFontComboBox(self)
