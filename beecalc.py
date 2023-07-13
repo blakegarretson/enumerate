@@ -93,8 +93,11 @@ default_themes = {
 
 }
 
+num_formats = {'Auto':'g','Sci':'e','Fix':'f'}
+
 default_settings = dict(
-    fmt_str='.10g',
+    num_digits='10',
+    num_fmt='Auto',
     font='',
     font_size=16,
     font_bold=False,
@@ -432,10 +435,16 @@ class MainWindow(QMainWindow):
 
         self.format_button = QAction("Aa", self)
         font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        # font.setPointSize(16)
-        # self.format_button.setFont(font)
-        # backColor.setShortcut('Ctrl+Q')
         self.format_button.triggered.connect(self.toggleFormatToolbar)
+
+        numformatBox = QComboBox(self)
+        numformatBox.setEditable(False)
+        numformatBox.setMinimumContentsLength(12)
+        opts = list(num_formats.keys())
+        numformatBox.addItems(opts)
+        index = opts.index(self.settings.num_fmt)
+        numformatBox.setCurrentIndex(index)
+        numformatBox.currentTextChanged.connect(self.changeNumFormat)
 
         self.menubar = self.addToolBar("Main Menu")
         self.menubar.setMovable(False)
@@ -444,15 +453,19 @@ class MainWindow(QMainWindow):
         self.menubar.addAction(self.notepadButton)
         self.menubar.addAction(self.notepadAddButton)
         self.menubar.addSeparator()
-        # self.menubar.addWidget(QLabel("Notepad:"))
+        # self.menubar.addAction(settings_button)
         # self.menubar.addWidget(self.notepadBox)
-        self.menubar.addAction(settings_button)
         self.menubar.addAction(self.format_button)
+        self.menubar.addWidget(numformatBox)
         
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.menubar.addWidget(spacer)
         self.menubar.addAction(self.notepadDeleteButton)
+
+    def changeNumFormat(self,value):
+        self.settings.num_fmt = value
+        self.processNotepad()
 
     def makeFormatToolbar(self):
         fontBox = QFontComboBox(self)
@@ -559,7 +572,7 @@ class MainWindow(QMainWindow):
                     if (not isinstance(out, complex)) and math.isclose(out, 0, abs_tol=1e-15):
                         out = 0
                     if isinstance(out, (float, unitclass.Unit)):
-                        fmt_str = '{:' + self.settings["fmt_str"] + '}\n'
+                        fmt_str = '{:.'+self.settings.num_digits+num_formats[self.settings.num_fmt]+'}\n'
                         outtext = fmt_str.format(out)
                     else:
                         outtext = f'{out}\n'
