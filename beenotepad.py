@@ -166,10 +166,8 @@ class BeeParser():
 
         # handle money, $ prefix to USD suffix
         while match := self.money_re.search(text):
-            print("match", f'{match.group(1)} USD')
             text = text[:match.start()] + f'{match.group(1)} USD' + text[match.end():]
         while match := self.money2_re.search(text):
-            print("match", f'{match.group(1)} USD')
             text = text[:match.start()] + f'{match.group(1)} USD' + text[match.end():]
 
         # print('7>', text)

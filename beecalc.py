@@ -178,6 +178,7 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
             (r'\w+\s*(?==)', settings.color_variable),  # variable name
             (r'(?<=^|[=*-/+])\s*\w+\s*(?=([=*-/+])|( in )|$)', settings.color_variable),  # variable name
             (r'(?<=(\d)|( in ))\s*[A-Za-z]+[1-4⁰¹²³⁴⁵⁶⁷⁸⁹]*(?=([⋅·+-/* )]|$))', settings.color_unit),  # units
+            (r'\$', settings.color_unit),  # units
             (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", settings.color_text),  # numbers
             ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.color_function),  # function call
             # (r'\w+(?=\()', settings.style_function),  # function call
@@ -273,18 +274,13 @@ class MainWindow(QMainWindow):
         self.formatbar.hide()
 
         # shortcuts
-        shortcut_menu = QShortcut(QKeySequence('Ctrl+Q'), self)
-        shortcut_menu.activated.connect(self.deleteNotepad)
-        shortcut_menu = QShortcut(QKeySequence('Ctrl+N'), self)
-        shortcut_menu.activated.connect(self.addNotepad)
-        shortcut_menu = QShortcut(QKeySequence('Ctrl+M'), self)
-        shortcut_menu.activated.connect(self.toggleMenuToolbar)
-        shortcut_format = QShortcut(QKeySequence('Ctrl+Shift+F'), self)
-        shortcut_format.activated.connect(self.toggleFormatToolbar)
-        shortcut_debug = QShortcut(QKeySequence('Ctrl+Shift+D'), self)
-        shortcut_debug.activated.connect(self.debug)
-        shortcut_save = QShortcut(QKeySequence('Ctrl+S'), self)
-        shortcut_save.activated.connect(self.saveAll)
+        QShortcut(QKeySequence('Ctrl+D'), self).activated.connect(self.duplicateLine)
+        QShortcut(QKeySequence('Ctrl+Shift+N'), self).activated.connect(self.deleteNotepad)
+        QShortcut(QKeySequence('Ctrl+N'), self).activated.connect(self.addNotepad)
+        QShortcut(QKeySequence('Ctrl+M'), self).activated.connect(self.toggleMenuToolbar)
+        QShortcut(QKeySequence('Ctrl+Shift+F'), self).activated.connect(self.toggleFormatToolbar)
+        QShortcut(QKeySequence('Ctrl+Shift+D'), self).activated.connect(self.debug)
+        QShortcut(QKeySequence('Ctrl+S'), self).activated.connect(self.saveAll)
 
         self.setCentralWidget(container)
 
@@ -378,6 +374,14 @@ class MainWindow(QMainWindow):
 
     def test(self):
         print(f'index changed {self.notepadBox.currentIndex()}')
+
+    def duplicateLine(self):
+        print('dup!')
+        cursor = self.input.textCursor()
+        cursor.select(cursor.SelectionType.LineUnderCursor)
+        selectedText = cursor.selectedText()
+        cursor.movePosition(cursor.MoveOperation.EndOfLine)
+        cursor.insertText('\n'+selectedText)
 
     def changeNotepad(self):
         if self.notepadBox.currentIndex() != -1:
