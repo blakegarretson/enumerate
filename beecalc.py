@@ -6,8 +6,9 @@ from pathlib import Path
 import unitclass
 
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle, QFrame, QSplitter,
-                             QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox, QDialog, QDialogButtonBox,QSizePolicy,
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle, QFrame, 
+                             QSplitter, QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox, QDialog, 
+                             QDialogButtonBox,QSizePolicy,QSpinBox,
                              QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
 from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
                          QIcon, QFont, QFontDatabase, QKeySequence)
@@ -93,9 +94,11 @@ default_themes = {
 
 }
 
-num_formats = {'Auto':'g','Sci':'e','Fix':'f'}
+num_formats = {'Auto':'g','Fix':'f'}
 
 default_settings = dict(
+    num_fixdigits='5',
+    num_autodigits='10',
     num_digits='10',
     num_fmt='Auto',
     font='',
@@ -437,14 +440,6 @@ class MainWindow(QMainWindow):
         font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.format_button.triggered.connect(self.toggleFormatToolbar)
 
-        numformatBox = QComboBox(self)
-        numformatBox.setEditable(False)
-        numformatBox.setMinimumContentsLength(12)
-        opts = list(num_formats.keys())
-        numformatBox.addItems(opts)
-        index = opts.index(self.settings.num_fmt)
-        numformatBox.setCurrentIndex(index)
-        numformatBox.currentTextChanged.connect(self.changeNumFormat)
 
         self.menubar = self.addToolBar("Main Menu")
         self.menubar.setMovable(False)
@@ -456,7 +451,6 @@ class MainWindow(QMainWindow):
         # self.menubar.addAction(settings_button)
         # self.menubar.addWidget(self.notepadBox)
         self.menubar.addAction(self.format_button)
-        self.menubar.addWidget(numformatBox)
         
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -465,6 +459,18 @@ class MainWindow(QMainWindow):
 
     def changeNumFormat(self,value):
         self.settings.num_fmt = value
+        self.settings.num_digits = self.getDigitsStr()
+        self.digitsLabel.setText(self.getDigitsLabel())
+        self.digitsSpinBox.setValue(int(self.settings.num_digits))
+        self.processNotepad()
+
+    def changeNumDigits(self,value):
+        value = str(value)
+        self.settings.num_digits = value
+        if self.settings.num_fmt == 'Auto':
+            self.settings.num_autodigits = value
+        else:
+            self.settings.num_fixdigits = value
         self.processNotepad()
 
     def makeFormatToolbar(self):
@@ -502,20 +508,75 @@ class MainWindow(QMainWindow):
         themeBox.setCurrentIndex(index)
         themeBox.currentTextChanged.connect(self.changeTheme)
 
+        numformatBox = QComboBox(self)
+        numformatBox.setEditable(False)
+        numformatBox.setMinimumContentsLength(12)
+        opts = list(num_formats.keys())
+        numformatBox.addItems(opts)
+        index = opts.index(self.settings.num_fmt)
+        numformatBox.setCurrentIndex(index)
+        numformatBox.currentTextChanged.connect(self.changeNumFormat)
+
+        self.digitsSpinBox = QSpinBox()
+        self.digitsSpinBox.setMaximum(20)
+        self.digitsSpinBox.setMinimum(1)
+        self.digitsSpinBox.setValue(int(self.settings.num_digits))
+        self.digitsSpinBox.valueChanged.connect(self.changeNumDigits)
+
+
         self.formatbar = QToolBar('Format')
         self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, self.formatbar)
         self.formatbar.setMovable(False)
 
-        self.formatbar.addWidget(fontBox)
-        self.formatbar.addWidget(fontSizeBox)
-        self.formatbar.addWidget(self.bold)
-        self.formatbar.addWidget(themeBox)
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        row1 = QHBoxLayout()
+        row2 = QHBoxLayout()
+        container = QWidget()
+        layout.addLayout(row1)
+        layout.addLayout(row2)
+        container.setLayout(layout)
+        self.formatbar.addWidget(container)
+
+        row1.addWidget(QLabel(" Font: "))
+        row1.addWidget(fontBox)
+        row1.addWidget(fontSizeBox)
+        row1.addWidget(self.bold)
+        row1.addWidget(QLabel(" Theme: "))
+        row1.addWidget(themeBox)
+        spacer1 = QWidget()
+        spacer1.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        row1.addWidget(spacer1)
+
+        row2.addWidget(QLabel(" Number Format: "))
+        row2.addWidget(numformatBox)
+
+        self.digitsLabel = QLabel(self.getDigitsLabel())
+        row2.addWidget(self.digitsLabel)
+        row2.addWidget(self.digitsSpinBox)
+        spacer2 = QWidget()
+        spacer2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        row2.addWidget(spacer2)
+
 
         # self.formatbar.addAction(fontColor)
         # self.formatbar.addAction(backColor)
 
         # self.formatbar.addSeparator()
-
+    def getDigitsLabel(self):
+        if self.settings.num_fmt == 'Auto':
+            return " Significant Digits: "
+        else:
+            return " Decimal Places: "
+        
+    def getDigitsStr(self):
+        if self.settings.num_fmt == 'Auto':
+            return self.settings.num_autodigits
+        else:
+            return self.settings.num_fixdigits
+        
     def changeTheme(self, theme):
         print(theme)
         self.settings = settingsdict(self.settings | default_themes[theme])
