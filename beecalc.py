@@ -49,6 +49,7 @@ default_themes = {
         color_variable="#79dce8",
         color_unit="#ab9df3",
         color_conversion="#fd9967",
+        color_error='#fe2020',
     ),
     'Muted': dict(
         theme='Muted',
@@ -61,6 +62,7 @@ default_themes = {
         color_variable='#7fbcb3',
         color_unit='#d799b6',
         color_conversion='#85928a',
+        color_error='#fe2020',
     ),
     'Solarized': dict(
         theme='Solarized',
@@ -73,6 +75,7 @@ default_themes = {
         color_variable='#859900',
         color_unit='#6c71c4',
         color_conversion='#cb4b16',
+        color_error='#fe2020',
     ),
     'Light': dict(
         theme='Light',
@@ -85,6 +88,7 @@ default_themes = {
         color_variable='#2c92b0',
         color_unit='#4553bf',
         color_conversion='#fe9720',
+        color_error='#fe2020',
     )
 
 }
@@ -181,6 +185,7 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
             (r'[+-/*=(),]', settings.color_operator),  # operator
             (r'( in )|( to )', settings.color_conversion),  # conversion
             (r'#.*$', settings.color_comment),  # comment
+            (r'\?', settings.color_error),  # ERROR
             ('|'.join([rf'(\b{i}\b)' for i in constant_list]), settings.color_constant),  # comment
         ]
 
@@ -201,12 +206,14 @@ class MainWindow(QMainWindow):
     def __init__(self, settings, current, notepads):
         super().__init__()
 
-        # self.setUnifiedTitleAndToolBarOnMac(True)
+        self.setUnifiedTitleAndToolBarOnMac(True)
         self.settings = settings
         self.current = current
         self.notepads = notepads
+        self.updateStyle()  # apply stylesheets for widget defaults
+        self.statusBar = self.statusBar()
+        self.statusBar.showMessage("Welcome to BeeCalc!", 3000)
 
-        self.updateStyle()  # apply stylesheets
 
         self.resize(500, 500)
         self.setWindowTitle("BeeCalc")
@@ -245,6 +252,7 @@ class MainWindow(QMainWindow):
         self.inputScrollbar = self.input.verticalScrollBar()
         self.inputScrollbar.hide()
         self.outputScrollbar = self.output.verticalScrollBar()
+        self.keepScrollSynced = True
         self.inputScrollbar.valueChanged.connect(self.syncScroll)
         self.outputScrollbar.valueChanged.connect(self.syncScroll)
 
@@ -288,9 +296,10 @@ class MainWindow(QMainWindow):
             QTextEdit {{
                 background-color: {self.settings.color_background};
                 color: {self.settings.color_text};
-                padding: 5px 5px 10px 5px;
+                padding: 0px;
             }}
-                    """)
+            """)
+                # padding: 5px 5px 7px 5px;
         #         border: none;
 
     def getNotepadText(self, num):
@@ -331,11 +340,12 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def syncScroll(self, value):
-        sender = self.sender()
-        if sender == self.inputScrollbar:
-            self.output.verticalScrollBar().setValue(value)
-        elif sender == self.outputScrollbar:
-            self.input.verticalScrollBar().setValue(value)
+        if self.keepScrollSynced:
+            sender = self.sender()
+            if sender == self.inputScrollbar:
+                self.outputScrollbar.setValue(value)
+            elif sender == self.outputScrollbar:
+                self.inputScrollbar.setValue(value)
 
     def debug(self):
         print(dir(self.input))
@@ -533,9 +543,11 @@ class MainWindow(QMainWindow):
     #     self.input.setTextColor(color)
 
     def processNotepad(self):
+        self.keepScrollSynced = False
         self.notepad.clear()
         self.output.setReadOnly(False)
         all_output = []
+        errored = False
         for line in self.input.toPlainText().split('\n'):
             try:
                 out = self.notepad.append(line)
@@ -555,11 +567,16 @@ class MainWindow(QMainWindow):
                     unitclass.UnavailableUnit,
                     unitclass.InconsistentUnitsError, TypeError,
                     AttributeError, Exception) as err:
-                print(err)
+                self.statusBar.showMessage(str(err),3000)
+                errored = True
                 outtext = "?\n"
             all_output.append(outtext)
+        if not errored:
+            self.statusBar.clearMessage()
         self.output.setText("".join(all_output)[:-1])
         self.output.setReadOnly(True)
+        self.outputScrollbar.setValue(self.inputScrollbar.value())
+        self.keepScrollSynced = True
 
 
 app = QApplication(sys.argv)

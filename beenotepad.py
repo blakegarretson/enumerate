@@ -29,6 +29,8 @@ class BeeParser():
     )
     in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
     inch_re = re.compile(r"(?<![a-zA-Z ])in(?![a-zA-Z0-9])")
+    money_re = re.compile(r"\$([0-9.]+)\b")
+    money2_re = re.compile(r"(( in)|( to))\s+\$")
     to_re = re.compile(r"\s+to\s+")
     of_re = re.compile(r"%\s+of\s+")
     names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
@@ -162,6 +164,14 @@ class BeeParser():
         text = self.names_re.sub(self._replacer, text)
         # print("     >:",text)
 
+        # handle money, $ prefix to USD suffix
+        while match := self.money_re.search(text):
+            print("match", f'{match.group(1)} USD')
+            text = text[:match.start()] + f'{match.group(1)} USD' + text[match.end():]
+        while match := self.money2_re.search(text):
+            print("match", f'{match.group(1)} USD')
+            text = text[:match.start()] + f'{match.group(1)} USD' + text[match.end():]
+
         # print('7>', text)
         text = text.translate(self.from_specials)
         # Replace implied units with Unit()
@@ -188,6 +198,7 @@ class BeeParser():
         # Which gives and error because 'in' is a keyword.
         while match := self.inch_re.search(text):
             text = text[:match.start()] + 'inch' + text[match.end():]
+
 
         if debug:
             print("Preprocessed text:", text)
@@ -406,6 +417,6 @@ if __name__ == '__main__':
     pad.append('1j')
     pad.append('1i')
     pad.append('3+4j')
+    pad.append('1 USD in pennies')
+    pad.append('10USD in $')
     # pad.append('ans')
-    for x in pad.data:
-        print(x)
