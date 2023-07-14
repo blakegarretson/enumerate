@@ -8,7 +8,7 @@ import unitclass
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle, QFrame, 
                              QSplitter, QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox, QDialog, 
-                             QDialogButtonBox,QSizePolicy,QSpinBox,
+                             QDialogButtonBox,QSizePolicy,QSpinBox,QRadioButton,
                              QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
 from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
                          QIcon, QFont, QFontDatabase, QKeySequence)
@@ -457,8 +457,9 @@ class MainWindow(QMainWindow):
         self.menubar.addWidget(spacer)
         self.menubar.addAction(self.notepadDeleteButton)
 
-    def changeNumFormat(self,value):
-        self.settings.num_fmt = value
+    def changeNumFormat(self):
+        btn = self.sender()
+        self.settings.num_fmt = btn.text()
         self.settings.num_digits = self.getDigitsStr()
         self.digitsLabel.setText(self.getDigitsLabel())
         self.digitsSpinBox.setValue(int(self.settings.num_digits))
@@ -508,15 +509,6 @@ class MainWindow(QMainWindow):
         themeBox.setCurrentIndex(index)
         themeBox.currentTextChanged.connect(self.changeTheme)
 
-        numformatBox = QComboBox(self)
-        numformatBox.setEditable(False)
-        numformatBox.setMinimumContentsLength(12)
-        opts = list(num_formats.keys())
-        numformatBox.addItems(opts)
-        index = opts.index(self.settings.num_fmt)
-        numformatBox.setCurrentIndex(index)
-        numformatBox.currentTextChanged.connect(self.changeNumFormat)
-
         self.digitsSpinBox = QSpinBox()
         self.digitsSpinBox.setMaximum(20)
         self.digitsSpinBox.setMinimum(1)
@@ -551,7 +543,13 @@ class MainWindow(QMainWindow):
         row1.addWidget(spacer1)
 
         row2.addWidget(QLabel(" Number Format: "))
-        row2.addWidget(numformatBox)
+        for label in ('Auto','Fix'):
+            numbtn = QRadioButton(label)
+            numbtn
+            if label == self.settings.num_fmt:
+                numbtn.setChecked(True)
+            numbtn.toggled.connect(self.changeNumFormat)
+            row2.addWidget(numbtn)
 
         self.digitsLabel = QLabel(self.getDigitsLabel())
         row2.addWidget(self.digitsLabel)
@@ -633,8 +631,8 @@ class MainWindow(QMainWindow):
                     if (not isinstance(out, complex)) and math.isclose(out, 0, abs_tol=1e-15):
                         out = 0
                     if isinstance(out, (float, unitclass.Unit)):
-                        fmt_str = '{:.'+self.settings.num_digits+num_formats[self.settings.num_fmt]+'}\n'
-                        outtext = fmt_str.format(out)
+                        fmt_str = '{:.'+self.settings.num_digits+num_formats[self.settings.num_fmt]+'}'
+                        outtext = fmt_str.format(out)+'\n'
                     else:
                         outtext = f'{out}\n'
                 else:
