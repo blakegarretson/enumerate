@@ -110,7 +110,7 @@ default_settings = dict(
     font='',
     font_size=16,
     font_bold=False,
-    align=True,
+    align=False,
 ) | default_themes['Monokai']
 
 default_notepads = {
@@ -677,7 +677,7 @@ class MainWindow(QMainWindow):
         self.output.setReadOnly(False)
         all_output = []
         errored = False
-        widest_entry = 8
+        widest_entry = 0
         for line in self.input.toPlainText().split('\n'):
             try:
                 out = self.notepad.append(line)
@@ -687,14 +687,14 @@ class MainWindow(QMainWindow):
                     if isinstance(out, (float, unitclass.Unit)):
                         fmt_str = '{:.'+self.settings.num_digits+num_formats[self.settings.num_fmt]+'}'  # type: ignore
                         text = fmt_str.format(out)
-                        zeropt = self.re_zeropoint.search(text).start()
+                        zeropt = len(text) - self.re_zeropoint.search(text).start()
                         if zeropt > widest_entry:
                             widest_entry = zeropt
                         outtext = (text, zeropt)
 
                     else:
                         text = f'{out}'
-                        zeropt = self.re_zeropoint.search(text).start()
+                        zeropt = len(text) - self.re_zeropoint.search(text).start()
                         if zeropt > widest_entry:
                             widest_entry = zeropt
                         outtext = (text, zeropt)
@@ -714,7 +714,7 @@ class MainWindow(QMainWindow):
             self.status_bar.clearMessage()
 
         if self.settings.align:
-            all_output = [' '*(widest_entry-n)+t for t, n in all_output]
+            all_output = [t+' '*(widest_entry-n) for t, n in all_output]
         else:
             all_output = [t for t, n in all_output]
         self.output.setText("\n".join(all_output))
