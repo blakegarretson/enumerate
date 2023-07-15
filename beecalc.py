@@ -184,12 +184,12 @@ def initililize_config():
 
 
 parser = beenotepad.BeeParser()
-function_list = list(parser.functions.keys())
+function_list = sorted(list(parser.functions.keys()))
 constant_list = list(parser.constants.keys())
 unit_list = []
 for qty, name, aliases, n, unit in unitclass._unit_list:
     unit_list.extend([name] + aliases.split())
-
+unit_list.sort()
 
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, settings, parent=None):
@@ -228,6 +228,8 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
 
 class MainWindow(QMainWindow):
     re_zeropoint = re.compile(r"[. ]|$")
+    re_incomplete = re.compile(r'(.*?\s*)\b(\w+)$')
+    # re_incomplete = re.compile(r'\b\w+$')
 
     def __init__(self, settings, current, notepads):
         super().__init__()
@@ -281,12 +283,12 @@ class MainWindow(QMainWindow):
         self.inputScrollbar.valueChanged.connect(self.syncScroll)
         self.outputScrollbar.valueChanged.connect(self.syncScroll)
 
+        # need this for tab completion
+        self.tabPopupVisable = False
+
         layout = QVBoxLayout()
         layout.addWidget(splitter)
 
-        # layout = QHBoxLayout()
-        # layout.addWidget(self.input, stretch=3)
-        # layout.addWidget(self.output, stretch=2)
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -304,7 +306,6 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence('Ctrl+N'), self).activated.connect(self.addNotepad)
         QShortcut(QKeySequence('Ctrl+M'), self).activated.connect(self.toggleMenuToolbar)
         QShortcut(QKeySequence('Ctrl+Shift+F'), self).activated.connect(self.toggleFormatToolbar)
-        QShortcut(QKeySequence('Ctrl+Shift+D'), self).activated.connect(self.debug)
         QShortcut(QKeySequence('Ctrl+S'), self).activated.connect(self.saveAll)
 
         self.setCentralWidget(container)
@@ -317,34 +318,47 @@ class MainWindow(QMainWindow):
             if event.key() == Qt.Key.Key_Tab:
                 self.tabCompletion()
                 return True
+            elif event.key() == Qt.Key.Key_Return:
+                # Capture the enter/return on Mac so the keypres on the tab completion popup 
+                # doesn't pass a return to the QTextEdit box. I think this a bug on Mac since 
+                # it doesn't happen on Windows?
+                if self.tabPopupVisable:
+                    self.tabPopupVisable = False
+                    return True
         return super().eventFilter(obj, event)
 
     def tabCompletion(self):
         position = self.input.textCursor().position()
         line = self.input.toPlainText()[:position].split('\n')[-1]
-        re_incomplete = re.compile(r'\b\w+$')
-        result = re_incomplete.search(line)
+        result = self.re_incomplete.search(line)
 
         if result:
-            word = result.group()
-            variables = [
-                x for x in self.notepad.parser.vars.keys()
-                if x.startswith(word)
-            ]
-            constants = [
-                x for x in self.notepad.parser.constants.keys()
-                if x.startswith(word)
-            ]
+            print(result.groups())
+            print(result.groupdict())
+            print(result.start(),result.pos, result.span())
+            word = result.groups()[1]
+            variables = [x for x in self.notepad.parser.vars.keys() if x.startswith(word)]
+            constants = [x for x in self.notepad.parser.constants.keys() if x.startswith(word)]
             funcs = [f'{x}(' for x in function_list if word in x]
             units = [x for x in unit_list if word in x]
             wordlist = variables + constants + funcs + units
-            self.replace_position = (
-                position - (len(line) - result.start(0)),
-                position)
-            self.showCompletionPopup(wordlist)
+            start, end = position - len(line) + result.start() +len(result.groups()[0]), position
+            self.replace_position = (start, end)
+
+            tabpopup = QComboBox(self)
+            tabpopup.setMaxVisibleItems(12)
+            tabpopup.hide()
+            tabpopup.clear()
+            tabpopup.addItems(wordlist)
+            tabpopup.setCurrentText('')
+            tabpopup.activated.connect(self.tabReplaceWord)
+            self.tabPopupVisable = True
+            tabpopup.showPopup()
+            
 
     def tabReplaceWord(self):
         newword = self.sender().currentText()
+        print(f"Completed word: '{newword}'")
         start, end = self.replace_position
         text = self.input.toPlainText()
         self.input.setText(text[:start]+newword+text[end:])
@@ -352,13 +366,7 @@ class MainWindow(QMainWindow):
         cursor = self.input.textCursor()
         cursor.setPosition(start+len(newword))
         self.input.setTextCursor(cursor)
-
-    def showCompletionPopup(self, wordlist):
-        popup = QComboBox(self.input)
-        popup.addItems(wordlist)
-        popup.setCurrentText('')
-        popup.activated.connect(self.tabReplaceWord)
-        popup.showPopup()
+        
 
     def updateStyle(self):
         self.setStyleSheet(f"""
@@ -728,33 +736,3 @@ app.setWindowIcon(QIcon("beecalc.png"))
 window = MainWindow(*initililize_config())
 window.show()
 app.exec()
-
-
-# app.setStyleSheet("QWidget { color: #e6e6e6; background-color: #262626; }")
-
-# button = QPushButton('One')
-# button.setStyleSheet(
-#     "background-color: #262626; "
-#     "font-family: times; "
-#     "font-size: 20px;"
-# )
-
-# self.setStyleSheet("""
-#             QWidget {
-#                 background-color: #333333;
-#                 color: #ffffff;
-#             }
-#             QPushButton {
-#                 background-color: #555555;
-#                 color: #ffffff;
-#                 border: none;
-#                 padding: 5px;
-#             }
-#             QPushButton:hover {
-#                 background-color: #666666;
-#             }
-#             QLineEdit {
-#                 background-color: #444444;
-#                 color: #ffffff;
-#             }
-#         """)
