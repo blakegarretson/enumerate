@@ -187,8 +187,8 @@ parser = beenotepad.BeeParser()
 function_list = sorted(list(parser.functions.keys()))
 constant_list = list(parser.constants.keys())
 unit_list = []
-for qty, name, aliases, n, unit in unitclass._unit_list:
-    unit_list.extend([name] + aliases.split())
+for name, unit in unitclass._units.items():
+    unit_list.extend([name] + (unit['aliases'] if unit['aliases'] else []))
 unit_list.sort()
 
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
@@ -342,6 +342,9 @@ class MainWindow(QMainWindow):
             funcs = [f'{x}(' for x in function_list if word in x]
             units = [x for x in unit_list if word in x]
             wordlist = variables + constants + funcs + units
+            priority = [w for w in wordlist if w.startswith(word)] 
+            rest = [w for w in wordlist if not w.startswith(word)] 
+            wordlist = priority + rest
             start, end = position - len(line) + result.start() +len(result.groups()[0]), position
             self.replace_position = (start, end)
 
