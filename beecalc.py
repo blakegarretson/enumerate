@@ -18,7 +18,7 @@ from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel,
                              QLineEdit, QVBoxLayout, QStyle, QFrame, QSplitter,
                              QFontComboBox, QComboBox, QColorDialog, QToolBar,
-                             QMessageBox, QDialog, QDialogButtonBox,QCheckBox,
+                             QMessageBox, QDialog, QDialogButtonBox, QCheckBox,
                              QSizePolicy, QSpinBox, QRadioButton, QHBoxLayout,
                              QWidget, QPlainTextEdit, QTextEdit)
 from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction,
@@ -190,6 +190,7 @@ unit_list = []
 for qty, name, aliases, n, unit in unitclass._unit_list:
     unit_list.extend([name] + aliases.split())
 
+
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, settings, parent=None):
         super().__init__(parent)
@@ -311,11 +312,9 @@ class MainWindow(QMainWindow):
         self.input.textChanged.connect(self.processNotepad)
         self.input.setText(input_text)
 
-    
     def eventFilter(self, obj, event):
         if obj == self.input and event.type() == QEvent.Type.KeyPress:
             if event.key() == Qt.Key.Key_Tab:
-                print('Caught Tab!')
                 self.tabCompletion()
                 return True
         return super().eventFilter(obj, event)
@@ -328,7 +327,6 @@ class MainWindow(QMainWindow):
 
         if result:
             word = result.group()
-            print(word)
             variables = [
                 x for x in self.notepad.parser.vars.keys()
                 if x.startswith(word)
@@ -340,12 +338,9 @@ class MainWindow(QMainWindow):
             funcs = [f'{x}(' for x in function_list if word in x]
             units = [x for x in unit_list if word in x]
             wordlist = variables + constants + funcs + units
-            print(wordlist)
-            print(result.start())
             self.replace_position = (
-                position - (len(line) -result.start(0)),
+                position - (len(line) - result.start(0)),
                 position)
-            print(self.replace_position)
             self.showCompletionPopup(wordlist)
 
     def tabReplaceWord(self):
@@ -359,13 +354,12 @@ class MainWindow(QMainWindow):
         self.input.setTextCursor(cursor)
 
     def showCompletionPopup(self, wordlist):
-        print('popup')
         popup = QComboBox(self.input)
         popup.addItems(wordlist)
         popup.setCurrentText('')
         popup.activated.connect(self.tabReplaceWord)
         popup.showPopup()
-    
+
     def updateStyle(self):
         self.setStyleSheet(f"""
             QTextEdit {{
@@ -399,11 +393,8 @@ class MainWindow(QMainWindow):
 
     def deleteNotepad(self):
         confirm = ConfirmationDialog(self, "Delete?", "Delete current notepad?").exec()
-        print(confirm)
         if confirm:
-            print("deleting notepad")
             self.notepads = self.notepads[:self.current] + self.notepads[self.current+1:]
-            print(self.notepads)
             if not self.notepads:
                 self.notepads = ['']
             self.notepadBox.setCurrentIndex(self.current-1)
@@ -422,9 +413,6 @@ class MainWindow(QMainWindow):
             elif sender == self.outputScrollbar:
                 self.inputScrollbar.setValue(value)
 
-    def debug(self):
-        print(dir(self.input))
-
     def toggleFormatToolbar(self):
         if self.formatbar.isVisible():
             self.formatbar.hide()
@@ -432,7 +420,6 @@ class MainWindow(QMainWindow):
             self.formatbar.show()
 
     def toggleMenuToolbar(self):
-        print('TRIGGER')
         if self.menubar.isVisible():
             self.menubar.hide()
         else:
@@ -447,15 +434,10 @@ class MainWindow(QMainWindow):
         self.saveCurrentNotepad()
         self.populateNotepadBox()
         self.notepadBox.setCurrentIndex(self.current)
-        # self.notepadBox.currentIndexChanged.connect(self.test)
-        self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
+        self.notepadBox.activated.connect(self.changeNotepad)
         self.notepadBox.showPopup()
 
-    def test(self):
-        print(f'index changed {self.notepadBox.currentIndex()}')
-
     def duplicateLine(self):
-        print('dup!')
         cursor = self.input.textCursor()
         cursor.select(cursor.SelectionType.LineUnderCursor)
         selectedText = cursor.selectedText()
@@ -466,16 +448,8 @@ class MainWindow(QMainWindow):
         if self.notepadBox.currentIndex() != -1:
             # NOTE: self.saveCurrentNotepad() needs to be called in the calling fuction before calling this fuction!
             self.current = self.notepadBox.currentIndex()
-            print(self.notepadBox.currentIndexChanged.signal)
-            # # this is a kludge for when disconnect is called without being connected first
-            # self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
-            # self.notepadBox.currentIndexChanged.disconnect()
             self.input.setText(self.getNotepadText(self.current))
             self.processNotepad()
-        # else:
-        # this is a kludge for when disconnect is called without being connected first
-        self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
-        self.notepadBox.currentIndexChanged.disconnect()
 
     def makeMainToolbar(self):
         # self.menu_toggle = QAction('', self)
@@ -492,21 +466,13 @@ class MainWindow(QMainWindow):
         self.populateNotepadBox()
         self.notepadBox.setCurrentIndex(self.current)
         self.notepadBox.hide()
-        # self.notepadBox.currentIndexChanged.connect(self.changeNotepad)
-        # self.notepadBox.currentTextChanged.connect(self.changeNotepad)
-        # self.notepadBox.setMaximumWidth(200)
         self.notepadAddButton = QAction('+', self)
         self.notepadAddButton.triggered.connect(self.addNotepad)
-        # self.notepadAddButton.setFont(font)
 
         self.notepadDeleteButton = QAction('×', self)
         self.notepadDeleteButton.triggered.connect(self.deleteNotepad)
-        # self.notepadDeleteButton.setFont(font)
 
-        # backColor = QAction(QIcon("icons/highlight.png"), "Change background color", self)
         settings_button = QAction("⚙", self)
-        # settings_button.setFont(font)
-        # settings_button.setShortcut('Ctrl+Q')
         settings_button.triggered.connect(self.openSettings)
 
         self.format_button = QAction("Aa", self)
@@ -520,22 +486,19 @@ class MainWindow(QMainWindow):
         self.menubar.addAction(self.notepadButton)
         self.menubar.addAction(self.notepadAddButton)
         self.menubar.addSeparator()
-        # self.menubar.addAction(settings_button)
-        # self.menubar.addWidget(self.notepadBox)
         self.menubar.addAction(self.format_button)
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.menubar.addWidget(spacer)
         self.menubar.addAction(self.notepadDeleteButton)
+
     def changeAlignment(self):
         self.settings.align = self.alignment.isChecked()
         self.output.setReadOnly(False)
         if self.settings.align:
-            print('aligning left')
             self.output.setAlignment(Qt.AlignmentFlag.AlignLeft)
         else:
-            print('aligning right')
             self.output.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.processNotepad()
 
@@ -666,7 +629,6 @@ class MainWindow(QMainWindow):
             return self.settings.num_fixdigits
 
     def changeTheme(self, theme):
-        print(theme)
         self.settings = settingsdict(self.settings | default_themes[theme])
         self.syntax_highlighter_in = BeeSyntaxHighlighter(self.settings, self.input.document())
         self.syntax_highlighter_out = BeeSyntaxHighlighter(self.settings, self.output.document())
@@ -692,7 +654,6 @@ class MainWindow(QMainWindow):
         self.updateFont()
 
     def changeFontWeight(self, font_weight):
-        print("changing weight")
         self.settings.font_weight = font_weight
         self.updateFont()
 
@@ -703,10 +664,6 @@ class MainWindow(QMainWindow):
     def changeFontBold(self):
         self.settings.font_bold = True if self.bold.isChecked() else False
         self.updateFont()
-
-    # def change_font_color(self):
-    #     color = QColorDialog.getColor()
-    #     self.input.setTextColor(color)
 
     def processNotepad(self):
         self.keepScrollSynced = False
