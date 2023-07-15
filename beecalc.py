@@ -15,7 +15,7 @@ from PyQt6.QtCore import QSize, Qt
 #                          QIcon, QFont, QFontDatabase, QKeySequence)
 # from PyQt6.QtCore import Qt, QRegularExpression, QCoreApplication, QMargins, QPoint
 
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel,
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel,QStatusBar,
                              QLineEdit, QVBoxLayout, QStyle, QFrame, QSplitter,
                              QFontComboBox, QComboBox, QColorDialog, QToolBar,
                              QMessageBox, QDialog, QDialogButtonBox, QCheckBox,
@@ -38,17 +38,17 @@ class ConfirmationDialog(QDialog):
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(QLabel(message))
-        self.layout.addWidget(self.buttonBox)
-        self.setLayout(self.layout)
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel(message))
+        layout.addWidget(self.buttonBox)
+        self.setLayout(layout)
 
 
 class settingsdict(dict):
     """Dict class with dot notation for ease of use"""
     __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
+    __setattr__ = dict.__setitem__ # type: ignore
+    __delattr__ = dict.__delitem__ # type: ignore
 
 
 default_themes = {
@@ -193,7 +193,7 @@ unit_list.sort()
 
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, settings, parent=None):
-        super().__init__(parent)
+        super().__init__(parent) # type: ignore
 
         self.rules = []
 
@@ -239,8 +239,9 @@ class MainWindow(QMainWindow):
         self.current = current
         self.notepads = notepads
         self.updateStyle()  # apply stylesheets for widget defaults
-        self.statusBar = self.statusBar()
-        self.statusBar.showMessage("Welcome to BeeCalc!", 3000)
+        self.status_bar = QStatusBar(self)
+        self.setStatusBar(self.status_bar)
+        self.status_bar.showMessage("Welcome to BeeCalc!", 3000)
 
         self.resize(500, 500)
         self.setWindowTitle("BeeCalc")
@@ -471,6 +472,7 @@ class MainWindow(QMainWindow):
 
         self.notepadButton = QAction('☰', self)
         self.notepadButton.triggered.connect(self.showNotepadPopup)
+        self.notepadButton.setStatusTip("Change notepads")
         # self.notepadButton.setFont(font)
 
         self.notepadBox = QComboBox(self)
@@ -479,16 +481,19 @@ class MainWindow(QMainWindow):
         self.notepadBox.hide()
         self.notepadAddButton = QAction('+', self)
         self.notepadAddButton.triggered.connect(self.addNotepad)
+        self.notepadAddButton.setStatusTip("Creat new notepad")
 
         self.notepadDeleteButton = QAction('×', self)
         self.notepadDeleteButton.triggered.connect(self.deleteNotepad)
+        self.notepadDeleteButton.setStatusTip("Delete current notepad")
 
-        settings_button = QAction("⚙", self)
-        settings_button.triggered.connect(self.openSettings)
+        # settings_button = QAction("⚙", self)
+        # settings_button.triggered.connect(self.openSettings)
 
         self.format_button = QAction("Aa", self)
         font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.format_button.triggered.connect(self.toggleFormatToolbar)
+        self.format_button.setStatusTip("Format/style options")
 
         self.menubar = self.addToolBar("Main Menu")
         self.menubar.setMovable(False)
@@ -711,12 +716,12 @@ class MainWindow(QMainWindow):
                     unitclass.UnavailableUnit,
                     unitclass.InconsistentUnitsError, TypeError,
                     AttributeError, Exception) as err:
-                self.statusBar.showMessage(str(err), 3000)
+                self.status_bar.showMessage(str(err), 3000)
                 errored = True
                 outtext = ('?', 1)
             all_output.append(outtext)
         if not errored:
-            self.statusBar.clearMessage()
+            self.status_bar.clearMessage()
 
         if self.settings.align:
             all_output = [' '*(widest_entry-n)+t for t, n in all_output]
