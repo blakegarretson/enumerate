@@ -15,7 +15,7 @@ from PyQt6.QtCore import QSize, Qt
 #                          QIcon, QFont, QFontDatabase, QKeySequence)
 # from PyQt6.QtCore import Qt, QRegularExpression, QCoreApplication, QMargins, QPoint
 
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel,QStatusBar,
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QStatusBar,
                              QLineEdit, QVBoxLayout, QStyle, QFrame, QSplitter,
                              QFontComboBox, QComboBox, QColorDialog, QToolBar,
                              QMessageBox, QDialog, QDialogButtonBox, QCheckBox,
@@ -47,8 +47,8 @@ class ConfirmationDialog(QDialog):
 class settingsdict(dict):
     """Dict class with dot notation for ease of use"""
     __getattr__ = dict.get
-    __setattr__ = dict.__setitem__ # type: ignore
-    __delattr__ = dict.__delitem__ # type: ignore
+    __setattr__ = dict.__setitem__  # type: ignore
+    __delattr__ = dict.__delitem__  # type: ignore
 
 
 default_themes = {
@@ -191,9 +191,10 @@ for name, unit in unitclass._units.items():
     unit_list.extend([name] + (unit['aliases'] if unit['aliases'] else []))
 unit_list.sort()
 
+
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, settings, parent=None):
-        super().__init__(parent) # type: ignore
+        super().__init__(parent)  # type: ignore
 
         self.rules = []
 
@@ -249,16 +250,13 @@ class MainWindow(QMainWindow):
         self.notepad = beenotepad.BeeNotepad()
         input_text = self.getNotepadText(self.current)
 
-        self.font_families = QFontDatabase.families()
-        self.font = QFont()
-        if settings.font not in self.font_families:
+        font_families = QFontDatabase.families()
+        if settings.font not in font_families:
             for fontname in ['Consolas', 'Andale Mono', 'Courier New', 'Courier']:
-                if fontname in self.font_families:
+                if fontname in font_families:
                     self.settings.font = fontname
                     break
 
-        # font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        # font.setPointSize(16)
         self.input = QTextEdit()
         self.output = QTextEdit()
         splitter = QSplitter()
@@ -320,8 +318,8 @@ class MainWindow(QMainWindow):
                 self.tabCompletion()
                 return True
             elif event.key() == Qt.Key.Key_Return:
-                # Capture the enter/return on Mac so the keypres on the tab completion popup 
-                # doesn't pass a return to the QTextEdit box. I think this a bug on Mac since 
+                # Capture the enter/return on Mac so the keypres on the tab completion popup
+                # doesn't pass a return to the QTextEdit box. I think this a bug on Mac since
                 # it doesn't happen on Windows?
                 if self.tabPopupVisable:
                     self.tabPopupVisable = False
@@ -336,17 +334,17 @@ class MainWindow(QMainWindow):
         if result:
             print(result.groups())
             print(result.groupdict())
-            print(result.start(),result.pos, result.span())
+            print(result.start(), result.pos, result.span())
             word = result.groups()[1]
             variables = [x for x in self.notepad.parser.vars.keys() if x.startswith(word)]
             constants = [x for x in self.notepad.parser.constants.keys() if x.startswith(word)]
             funcs = [f'{x}(' for x in function_list if word in x]
             units = [x for x in unit_list if word in x]
             wordlist = variables + constants + funcs + units
-            priority = [w for w in wordlist if w.startswith(word)] 
-            rest = [w for w in wordlist if not w.startswith(word)] 
+            priority = [w for w in wordlist if w.startswith(word)]
+            rest = [w for w in wordlist if not w.startswith(word)]
             wordlist = priority + rest
-            start, end = position - len(line) + result.start() +len(result.groups()[0]), position
+            start, end = position - len(line) + result.start() + len(result.groups()[0]), position
             self.replace_position = (start, end)
 
             tabpopup = QComboBox(self)
@@ -358,7 +356,6 @@ class MainWindow(QMainWindow):
             tabpopup.activated.connect(self.tabReplaceWord)
             self.tabPopupVisable = True
             tabpopup.showPopup()
-            
 
     def tabReplaceWord(self):
         newword = self.sender().currentText()
@@ -370,7 +367,6 @@ class MainWindow(QMainWindow):
         cursor = self.input.textCursor()
         cursor.setPosition(start+len(newword))
         self.input.setTextCursor(cursor)
-        
 
     def updateStyle(self):
         self.setStyleSheet(f"""
@@ -464,16 +460,9 @@ class MainWindow(QMainWindow):
             self.processNotepad()
 
     def makeMainToolbar(self):
-        # self.menu_toggle = QAction('', self)
-        # self.menu_toggle.triggered.connect(self.toggle_menu_toolbar)
-        # self.menu_toggle.setShortcut('Ctrl+Shift+M')
-        # font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        # font.setPointSize(18)
-
         self.notepadButton = QAction('☰', self)
         self.notepadButton.triggered.connect(self.showNotepadPopup)
         self.notepadButton.setStatusTip("Change notepads")
-        # self.notepadButton.setFont(font)
 
         self.notepadBox = QComboBox(self)
         self.populateNotepadBox()
@@ -491,7 +480,6 @@ class MainWindow(QMainWindow):
         # settings_button.triggered.connect(self.openSettings)
 
         self.format_button = QAction("Aa", self)
-        font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.format_button.triggered.connect(self.toggleFormatToolbar)
         self.format_button.setStatusTip("Format/style options")
 
@@ -537,7 +525,7 @@ class MainWindow(QMainWindow):
 
     def makeFormatToolbar(self):
         fontBox = QFontComboBox(self)
-        fontBox.setCurrentFont(self.font)
+        fontBox.setCurrentFont(QFont(self.settings.font))
         fontBox.setMinimumContentsLength(8)
         fontBox.currentFontChanged.connect(self.changeFont)
 
@@ -627,11 +615,6 @@ class MainWindow(QMainWindow):
         spacer2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         row2.addWidget(spacer2)
 
-        # self.formatbar.addAction(fontColor)
-        # self.formatbar.addAction(backColor)
-
-        # self.formatbar.addSeparator()
-
     def getDigitsLabel(self):
         if self.settings.num_fmt == 'Auto':
             return " Significant Digits: "
@@ -657,13 +640,13 @@ class MainWindow(QMainWindow):
         self.notepads[self.current] = self.input.toPlainText().split("\n")
 
     def updateFont(self):
-        self.font = QFont()
-        self.font.setFamily(self.settings.font)
-        self.font.setPointSize(self.settings.font_size)
-        self.font.setWeight(800 if self.settings.font_bold else 400)
-        self.font.setBold(True if self.settings.font_bold else False)
-        self.input.setFont(self.font)
-        self.output.setFont(self.font)
+        font = QFont()
+        font.setFamily(self.settings.font)
+        font.setPointSize(self.settings.font_size)
+        font.setWeight(800 if self.settings.font_bold else 400)
+        font.setBold(True if self.settings.font_bold else False)
+        self.input.setFont(font)
+        self.output.setFont(font)
 
     def changeFont(self, font):
         self.settings.font = font.family()
