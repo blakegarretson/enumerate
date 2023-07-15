@@ -193,8 +193,8 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
 
         rule_pairs = [  # order matters below, more general go first and are overridden by more specific
             (r'\w+\s*(?==)', settings.color_variable),  # variable name
-            (r'(?<=^|[=*-/+])\s*\w+\s*(?=([=*-/+])|( in )|$)', settings.color_variable),  # variable name
-            (r'(?<=(\d)|( in ))\s*[A-Za-z]+[1-4⁰¹²³⁴⁵⁶⁷⁸⁹]*(?=([⋅·+-/* )]|$))', settings.color_unit),  # units
+            (r'(?<=^|[=*-/+()])\s*\w+\s*(?=([=*-/+()])|( in )|$)', settings.color_variable),  # variable name
+            (r'(?<=(\d)|( in )|( to )|\(|[⁰¹²³⁴⁵⁶⁷⁸⁹])\s*[A-Za-z⋅·+-/*]+[1-9⁰¹²³⁴⁵⁶⁷⁸⁹]*(?=([⋅·+-/* )]|$))', settings.color_unit),  # units
             (r'\$', settings.color_unit),  # units
             (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", settings.color_text),  # numbers
             ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.color_function),  # function call
@@ -340,7 +340,7 @@ class MainWindow(QMainWindow):
             start, end = position - len(line) + result.start() + len(result.groups()[0]), position
             self.replace_position = (start, end)
 
-            tabpopup = QComboBox(self)
+            tabpopup = QComboBox(self.input)
             tabpopup.setMaxVisibleItems(12)
             tabpopup.hide()
             tabpopup.clear()
