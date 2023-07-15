@@ -1,18 +1,31 @@
 import sys
 import beenotepad
 import math
+import re
 import json
 from pathlib import Path
 import unitclass
 
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle, QFrame, 
-                             QSplitter, QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox, QDialog, 
-                             QDialogButtonBox,QSizePolicy,QSpinBox,QRadioButton,
-                             QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
-from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
-                         QIcon, QFont, QFontDatabase, QKeySequence)
-from PyQt6.QtCore import Qt, QRegularExpression, QCoreApplication, QMargins, QPoint
+# from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QStyle, QFrame,
+#                              QSplitter, QFontComboBox, QComboBox, QColorDialog, QToolBar, QMessageBox, QDialog,
+#                              QDialogButtonBox, QSizePolicy, QSpinBox, QRadioButton, QCheckBox,
+#                              QHBoxLayout, QWidget, QPlainTextEdit, QTextEdit)
+# from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction, QPixmap,  QShortcut, QTextOption,
+#                          QIcon, QFont, QFontDatabase, QKeySequence)
+# from PyQt6.QtCore import Qt, QRegularExpression, QCoreApplication, QMargins, QPoint
+
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel,
+                             QLineEdit, QVBoxLayout, QStyle, QFrame, QSplitter,
+                             QFontComboBox, QComboBox, QColorDialog, QToolBar,
+                             QMessageBox, QDialog, QDialogButtonBox,QCheckBox,
+                             QSizePolicy, QSpinBox, QRadioButton, QHBoxLayout,
+                             QWidget, QPlainTextEdit, QTextEdit)
+from PyQt6.QtGui import (QTextCharFormat, QColor, QSyntaxHighlighter, QAction,
+                         QPixmap, QShortcut, QTextOption, QIcon, QFont,
+                         QFontDatabase, QKeySequence)
+from PyQt6.QtCore import Qt, QRegularExpression, QCoreApplication, QEvent, QMargins, QPoint
+
 
 # import ctypes
 # ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('BTG.BeeCalc.BeeCalc.1')
@@ -94,7 +107,7 @@ default_themes = {
 
 }
 
-num_formats = {'Auto':'g','Fix':'f'}
+num_formats = {'Auto': 'g', 'Fix': 'f'}
 
 default_settings = dict(
     num_fixdigits='5',
@@ -104,6 +117,7 @@ default_settings = dict(
     font='',
     font_size=16,
     font_bold=False,
+    align=True,
 ) | default_themes['Monokai']
 
 default_notepads = {
@@ -172,7 +186,9 @@ def initililize_config():
 parser = beenotepad.BeeParser()
 function_list = list(parser.functions.keys())
 constant_list = list(parser.constants.keys())
-
+unit_list = []
+for qty, name, aliases, n, unit in unitclass._unit_list:
+    unit_list.extend([name] + aliases.split())
 
 class BeeSyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, settings, parent=None):
@@ -210,6 +226,8 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
 
 
 class MainWindow(QMainWindow):
+    re_zeropoint = re.compile(r"[. ]|$")
+
     def __init__(self, settings, current, notepads):
         super().__init__()
 
@@ -220,7 +238,6 @@ class MainWindow(QMainWindow):
         self.updateStyle()  # apply stylesheets for widget defaults
         self.statusBar = self.statusBar()
         self.statusBar.showMessage("Welcome to BeeCalc!", 3000)
-
 
         self.resize(500, 500)
         self.setWindowTitle("BeeCalc")
@@ -243,11 +260,11 @@ class MainWindow(QMainWindow):
         splitter = QSplitter()
         splitter.addWidget(self.input)
         splitter.addWidget(self.output)
-        splitter.setStretchFactor(0,3)
-        splitter.setStretchFactor(1,2)
+        splitter.setStretchFactor(0, 5)
+        splitter.setStretchFactor(1, 4)
         splitter.setHandleWidth(0)
-        splitter.setCollapsible(0,False)
-        splitter.setCollapsible(1,False)
+        splitter.setCollapsible(0, False)
+        splitter.setCollapsible(1, False)
 
         self.updateFont()
 
@@ -280,6 +297,7 @@ class MainWindow(QMainWindow):
         self.formatbar.hide()
 
         # shortcuts
+        self.input.installEventFilter(self)
         QShortcut(QKeySequence('Ctrl+D'), self).activated.connect(self.duplicateLine)
         QShortcut(QKeySequence('Ctrl+Shift+N'), self).activated.connect(self.deleteNotepad)
         QShortcut(QKeySequence('Ctrl+N'), self).activated.connect(self.addNotepad)
@@ -293,6 +311,61 @@ class MainWindow(QMainWindow):
         self.input.textChanged.connect(self.processNotepad)
         self.input.setText(input_text)
 
+    
+    def eventFilter(self, obj, event):
+        if obj == self.input and event.type() == QEvent.Type.KeyPress:
+            if event.key() == Qt.Key.Key_Tab:
+                print('Caught Tab!')
+                self.tabCompletion()
+                return True
+        return super().eventFilter(obj, event)
+
+    def tabCompletion(self):
+        position = self.input.textCursor().position()
+        line = self.input.toPlainText()[:position].split('\n')[-1]
+        re_incomplete = re.compile(r'\b\w+$')
+        result = re_incomplete.search(line)
+
+        if result:
+            word = result.group()
+            print(word)
+            variables = [
+                x for x in self.notepad.parser.vars.keys()
+                if x.startswith(word)
+            ]
+            constants = [
+                x for x in self.notepad.parser.constants.keys()
+                if x.startswith(word)
+            ]
+            funcs = [f'{x}(' for x in function_list if word in x]
+            units = [x for x in unit_list if word in x]
+            wordlist = variables + constants + funcs + units
+            print(wordlist)
+            print(result.start())
+            self.replace_position = (
+                position - (len(line) -result.start(0)),
+                position)
+            print(self.replace_position)
+            self.showCompletionPopup(wordlist)
+
+    def tabReplaceWord(self):
+        newword = self.sender().currentText()
+        start, end = self.replace_position
+        text = self.input.toPlainText()
+        self.input.setText(text[:start]+newword+text[end:])
+        self.processNotepad()
+        cursor = self.input.textCursor()
+        cursor.setPosition(start+len(newword))
+        self.input.setTextCursor(cursor)
+
+    def showCompletionPopup(self, wordlist):
+        print('popup')
+        popup = QComboBox(self.input)
+        popup.addItems(wordlist)
+        popup.setCurrentText('')
+        popup.activated.connect(self.tabReplaceWord)
+        popup.showPopup()
+    
     def updateStyle(self):
         self.setStyleSheet(f"""
             QTextEdit {{
@@ -301,7 +374,7 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }}
             """)
-                # padding: 5px 5px 7px 5px;
+        # padding: 5px 5px 7px 5px;
         #         border: none;
 
     def getNotepadText(self, num):
@@ -440,7 +513,6 @@ class MainWindow(QMainWindow):
         font = QFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.format_button.triggered.connect(self.toggleFormatToolbar)
 
-
         self.menubar = self.addToolBar("Main Menu")
         self.menubar.setMovable(False)
         # self.menubar.setFeatures(Qt.NoDockWidgetFeatures)
@@ -451,11 +523,21 @@ class MainWindow(QMainWindow):
         # self.menubar.addAction(settings_button)
         # self.menubar.addWidget(self.notepadBox)
         self.menubar.addAction(self.format_button)
-        
+
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.menubar.addWidget(spacer)
         self.menubar.addAction(self.notepadDeleteButton)
+    def changeAlignment(self):
+        self.settings.align = self.alignment.isChecked()
+        self.output.setReadOnly(False)
+        if self.settings.align:
+            print('aligning left')
+            self.output.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        else:
+            print('aligning right')
+            self.output.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.processNotepad()
 
     def changeNumFormat(self):
         btn = self.sender()
@@ -465,7 +547,7 @@ class MainWindow(QMainWindow):
         self.digitsSpinBox.setValue(int(self.settings.num_digits))
         self.processNotepad()
 
-    def changeNumDigits(self,value):
+    def changeNumDigits(self, value):
         value = str(value)
         self.settings.num_digits = value
         if self.settings.num_fmt == 'Auto':
@@ -477,7 +559,7 @@ class MainWindow(QMainWindow):
     def makeFormatToolbar(self):
         fontBox = QFontComboBox(self)
         fontBox.setCurrentFont(self.font)
-        fontBox.setMinimumContentsLength(10)
+        fontBox.setMinimumContentsLength(8)
         fontBox.currentFontChanged.connect(self.changeFont)
 
         fontSizeBox = QComboBox(self)
@@ -501,7 +583,7 @@ class MainWindow(QMainWindow):
 
         themeBox = QComboBox(self)
         themeBox.setEditable(False)
-        themeBox.setMinimumContentsLength(12)
+        themeBox.setMinimumContentsLength(8)
         themes = list(default_themes.keys())
         for i in themes:
             themeBox.addItem(i)
@@ -514,7 +596,6 @@ class MainWindow(QMainWindow):
         self.digitsSpinBox.setMinimum(1)
         self.digitsSpinBox.setValue(int(self.settings.num_digits))
         self.digitsSpinBox.valueChanged.connect(self.changeNumDigits)
-
 
         self.formatbar = QToolBar('Format')
         self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, self.formatbar)
@@ -543,7 +624,7 @@ class MainWindow(QMainWindow):
         row1.addWidget(spacer1)
 
         row2.addWidget(QLabel(" Number Format: "))
-        for label in ('Auto','Fix'):
+        for label in ('Auto', 'Fix'):
             numbtn = QRadioButton(label)
             numbtn
             if label == self.settings.num_fmt:
@@ -552,29 +633,38 @@ class MainWindow(QMainWindow):
             row2.addWidget(numbtn)
 
         self.digitsLabel = QLabel(self.getDigitsLabel())
+
+        self.alignment = QCheckBox('Align Decimals', self)
+        self.alignment.setChecked(True if self.settings.align else False)
+        self.changeAlignment()
+        self.alignment.stateChanged.connect(self.changeAlignment)
+
         row2.addWidget(self.digitsLabel)
         row2.addWidget(self.digitsSpinBox)
+        row2.addWidget(QLabel('  '))
+        row2.addWidget(self.alignment)
+
         spacer2 = QWidget()
         spacer2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         row2.addWidget(spacer2)
-
 
         # self.formatbar.addAction(fontColor)
         # self.formatbar.addAction(backColor)
 
         # self.formatbar.addSeparator()
+
     def getDigitsLabel(self):
         if self.settings.num_fmt == 'Auto':
             return " Significant Digits: "
         else:
             return " Decimal Places: "
-        
+
     def getDigitsStr(self):
         if self.settings.num_fmt == 'Auto':
             return self.settings.num_autodigits
         else:
             return self.settings.num_fixdigits
-        
+
     def changeTheme(self, theme):
         print(theme)
         self.settings = settingsdict(self.settings | default_themes[theme])
@@ -624,6 +714,7 @@ class MainWindow(QMainWindow):
         self.output.setReadOnly(False)
         all_output = []
         errored = False
+        widest_entry = 8
         for line in self.input.toPlainText().split('\n'):
             try:
                 out = self.notepad.append(line)
@@ -632,24 +723,43 @@ class MainWindow(QMainWindow):
                         out = 0
                     if isinstance(out, (float, unitclass.Unit)):
                         fmt_str = '{:.'+self.settings.num_digits+num_formats[self.settings.num_fmt]+'}'
-                        outtext = fmt_str.format(out)+'\n'
+                        text = fmt_str.format(out)
+                        zeropt = self.re_zeropoint.search(text).start()
+                        if zeropt > widest_entry:
+                            widest_entry = zeropt
+                        outtext = (text, zeropt)
+
                     else:
-                        outtext = f'{out}\n'
+                        text = f'{out}'
+                        zeropt = self.re_zeropoint.search(text).start()
+                        if zeropt > widest_entry:
+                            widest_entry = zeropt
+                        outtext = (text, zeropt)
                 else:
-                    outtext = "\n"
+                    outtext = ('', 0)
                 if out:
                     self.notepad.parser.vars['ans'] = out
             except (ValueError, NameError, SyntaxError,
                     unitclass.UnavailableUnit,
                     unitclass.InconsistentUnitsError, TypeError,
                     AttributeError, Exception) as err:
-                self.statusBar.showMessage(str(err),3000)
+                self.statusBar.showMessage(str(err), 3000)
                 errored = True
-                outtext = "?\n"
+                outtext = ('?', 1)
             all_output.append(outtext)
         if not errored:
             self.statusBar.clearMessage()
-        self.output.setText("".join(all_output)[:-1])
+
+        if self.settings.align:
+            all_output = [' '*(widest_entry-n)+t for t, n in all_output]
+        else:
+            all_output = [t for t, n in all_output]
+        self.output.setText("\n".join(all_output))
+        self.output.selectAll()
+        self.output.setAlignment(Qt.AlignmentFlag.AlignRight)
+        cursor = self.output.textCursor()
+        cursor.clearSelection()
+        self.output.setTextCursor(cursor)
         self.output.setReadOnly(True)
         self.outputScrollbar.setValue(self.inputScrollbar.value())
         self.keepScrollSynced = True

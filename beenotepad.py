@@ -136,7 +136,7 @@ class BeeParser():
         repl = self.constants.get(match.group()) or self.vars.get(
             match.group())
         if repl:
-            return str(repl)
+            return str(f'({repl})')
         else:
             return match.group()  # no replacement
 
