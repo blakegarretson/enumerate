@@ -18,7 +18,10 @@ Bee Calc: Cross-platform notebook calculator with robust unit support
 
 
 """
-import ast, math, operator, re
+import ast
+import math
+import operator
+import re
 from unitclass import Unit
 
 
@@ -78,7 +81,7 @@ class BeeParser():
             'atan': math.atan,
             'atan2': math.atan2,
             'atanh': math.atanh,
-            #'cbrt': math.cbrt, # py 3.11
+            # 'cbrt': math.cbrt, # py 3.11
             'ceil': math.ceil,
             'comb': math.comb,
             'cos': math.cos,
@@ -87,7 +90,7 @@ class BeeParser():
             'erf': math.erf,
             'erfc': math.erfc,
             'exp': math.exp,
-            #'exp2': math.exp2, # py 3.11
+            # 'exp2': math.exp2, # py 3.11
             'expm1': math.expm1,
             'fabs': math.fabs,
             'factorial': math.factorial,
@@ -142,7 +145,7 @@ class BeeParser():
 
     def parse(self, text, debug=False):
         """Preprocess input string before parsing
-        
+
         The 'of' operator must come at the end of the line, only folowed by a number.
         """
         # print('>>', text)
@@ -157,7 +160,7 @@ class BeeParser():
         # process 'of' first so % doesn't get confused with the % unit
         if match := self.of_re.search(text):
             text = '((' + text[:match.start()] + \
-                    f')/100)*' + text[match.end():]
+                f')/100)*' + text[match.end():]
 
         # preprocess vars/constants to make them work with units
         # print("BEFORE:",text)
@@ -182,13 +185,13 @@ class BeeParser():
 
         # print('8>', text)
         # process 'in' conversion
-        ## swap "to" for "in"
+        # swap "to" for "in"
         while match := self.to_re.search(text):
             text = text[:match.start()] + ' in ' + text[match.end():]
-        ## swap in Unit() call for the "to/in" unit
+        # swap in Unit() call for the "to/in" unit
         while match := self.in_re.search(text):
             text = text[:match.start()] + \
-                    f' in Unit("{match.group(1)}") {match.group(2)}'
+                f' in Unit("{match.group(1)}") {match.group(2)}'
         # print('9>', text)
 
         # handle value like 4 g/(mm²·in), which turns into:
@@ -196,7 +199,6 @@ class BeeParser():
         # Which gives and error because 'in' is a keyword.
         while match := self.inch_re.search(text):
             text = text[:match.start()] + 'inch' + text[match.end():]
-
 
         if debug:
             print("Preprocessed text:", text)
@@ -228,21 +230,20 @@ class BeeParser():
             left = self.evaluate(node.left)
             right = self.evaluate(node.right)
             try:
-                return self.operations[type(node.op)](left, right)
+                return self.operations[type(node.op)](left, right)  # type: ignore
             except KeyError:
                 raise ValueError(f"Bad Operator: {node.op.__class__.__name__}")
 
         elif isinstance(node, ast.UnaryOp):
             try:
-                return self.operations[type(node.op)](self.evaluate(
-                    node.operand))
+                return self.operations[type(node.op)](self.evaluate(node.operand))  # type: ignore
             except KeyError:
                 raise ValueError(f"Bad Operator: {node.op.__class__.__name__}")
 
         elif isinstance(node, ast.Assign):
             value = self.evaluate(node.value)
             for target in node.targets:
-                self.vars[target.id] = value
+                self.vars[target.id] = value # type: ignore
             return value
 
         elif isinstance(node, ast.Compare):
@@ -251,7 +252,7 @@ class BeeParser():
 
             op = node.ops[0]
             try:
-                return self.operations[type(op)](left, right)
+                return self.operations[type(op)](left, right) # type: ignore
             except KeyError:
                 raise ValueError(f"Bad Operator: {op.__class__.__name__}")
 
@@ -266,17 +267,17 @@ class BeeParser():
                 if any([var, const]):
                     return (const or var) * self.evaluate(node.args[0])
 
-            func = node.func.id
+            func = node.func.id # type: ignore
 
             if func == 'Unit':
                 if len(node.args) == 1:
-                    return Unit(node.args[0].value)
+                    return Unit(node.args[0].value) # type: ignore
                 elif len(node.args) == 2:
                     return Unit(self.evaluate(node.args[0]),
-                                node.args[1].value)
+                                node.args[1].value) # type: ignore
                 else:
                     return Unit(self.evaluate(node.args[0]),
-                                node.args[1].value, node.args[2].value)
+                                node.args[1].value, node.args[2].value) # type: ignore
                     # return Unit(node.args[0].value, node.args[1].value)
 
             args = [self.evaluate(arg) for arg in node.args]
@@ -358,7 +359,7 @@ if __name__ == '__main__':
     pad.append('20% of 100')
     pad.append('20% in ppm')
     pad.append('20% in unitless')
-    pad.append('0.8 _ in %')  #, debug=True)
+    pad.append('0.8 _ in %')  # , debug=True)
     pad.append('40 pcf in kg/m3')
     pad.append('40 lb/ft3 in kg/m3')
     pad.append('40 lb/ft3 to kg/m3')
