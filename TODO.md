@@ -1,5 +1,7 @@
 # To Do
 
+- FIX: F=m*a, a variable named m with mess with this, 
+  - AND something like 4 kg*m will think m is 1m and mess with the output units
 - add reduce() func for units
 - list funcs, units, etc.
   - command or browser?
