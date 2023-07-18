@@ -23,6 +23,7 @@ import math
 import operator
 import re
 from unitclass import Unit
+import unitclass
 
 
 class BeeParser():
@@ -136,10 +137,10 @@ class BeeParser():
         self.angle_funcs = ['cos', 'sin', 'tan']
 
     def _replacer(self, match):
-        repl = self.constants.get(match.group()) or self.vars.get(
-            match.group())
+        repl = self.constants.get(match.group()) or self.vars.get(match.group())
         if repl:
-            return str(f'({repl})')
+            return str(f'{repl}')
+            # return str(f'({repl})')
         else:
             return match.group()  # no replacement
 
@@ -304,8 +305,7 @@ class BeeParser():
         elif isinstance(node, ast.Constant):
             return node.value
         else:
-            raise TypeError(
-                f"Unsupported operation: {node.__class__.__name__}")
+            raise TypeError(f"Unsupported operation: {node.__class__.__name__}")
 
     def convert(self, from_unit, to_unit):
         if isinstance(from_unit, Unit):
@@ -389,7 +389,7 @@ if __name__ == '__main__':
     pad.append('a(1+2)')
     pad.append('sin(90 deg)')
     pad.append('sin(pi/2)')
-    pad.append('sin(pi rad)', debug=True)
+    # pad.append('sin(pi rad)', debug=True)
     pad.append('aaa=90', debug=True)
     pad.append('sin(aaa deg)', debug=True)
     pad.append('sin(pi rad/2)', debug=True)
