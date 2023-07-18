@@ -195,7 +195,7 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
             (r'\w+\s*(?==)', settings.color_variable),  # variable name
             (r'(?<=^|[=*-/+()])\s*\w+\s*(?=([=*-/+()])|( in )|$)', settings.color_variable),  # variable name
             (r'( in )|( to )', settings.color_conversion),  # conversion
-            (r'(?<=(\d)|( in )|( to )|\(|[⁰¹²³⁴⁵⁶⁷⁸⁹])\s*[A-Za-z⋅·+-/*]+[1-9⁰¹²³⁴⁵⁶⁷⁸⁹]*(?=([⋅·+-/* )]|$))', settings.color_unit),  # units
+            (r'(?<=([^a-zA-Z]\d)|(^\d)|( in )|( to )|\(|[⁰¹²³⁴⁵⁶⁷⁸⁹])\s*[A-Za-z⋅·+-/*]+[1-9⁰¹²³⁴⁵⁶⁷⁸⁹]*(?=([⋅·+-/* )]|$))', settings.color_unit),  # units
             (r'\$', settings.color_unit),  # units
             (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", settings.color_text),  # numbers
             ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.color_function),  # function call
