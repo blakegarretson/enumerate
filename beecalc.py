@@ -185,12 +185,10 @@ for name, unit in unitclass._units.items():
 unit_list.sort()
 
 
-class BeeSyntaxHighlighter(QSyntaxHighlighter):
-    def __init__(self, settings, notepad, parent=None):
+class BeeInputSyntaxHighlighter(QSyntaxHighlighter):
+    def __init__(self, settings, variables, parent=None):
         super().__init__(parent)  # type: ignore
 
-        self.notepad = notepad
-        self.settings = settings
         self.rules = []
         rule_pairs = [  # order matters below, more general go first and are overridden by more specific
             (r'[a-zA-Z_Ωμ°]+[0-9⁰¹²³⁴⁵⁶⁷⁸⁹]*\b', settings.color_unit),  # units
@@ -203,45 +201,39 @@ class BeeSyntaxHighlighter(QSyntaxHighlighter):
             (r'(?<=[a-zA-Z_Ωμ°][0-9⁰¹²³⁴⁵⁶⁷⁸⁹])|(?<=[a-zA-Z_Ωμ°@])\s*(( in )|( to ))\s*(?=[a-zA-Z_Ωμ°])', settings.color_conversion),  # conversion
             (r'@', settings.color_variable),  # variable name
             (r'\w+\s*(?==)', settings.color_variable),  # variable name
-        ]
-        post_rule_pairs = [ 
+            (r'|'.join([rf'\b({w})\b' for w in variables]),settings.color_variable),  # variable name
             (r'#.*$', settings.color_comment),  # comment
         ]
-         # order matters below, more general go first and are overridden by more specific
-        # rule_pairs = [  # order matters below, more general go first and are overridden by more specific
-        #     (r'\w+\s*(?==)', settings.color_variable),  # variable name
-        #     (r'(?<=^|[=*-/+()])\s*\w+\s*(?=([=*-/+()])|( in )|$)', settings.color_variable),  # variable name
-        #     (r'( in )|( to )', settings.color_conversion),  # conversion
-        #     (r'(?<=([^a-zA-Z]\d)|(^\d)|( in )|( to )|\(|[⁰¹²³⁴⁵⁶⁷⁸⁹])\s*[A-Za-z⋅·+-/*]+[1-9⁰¹²³⁴⁵⁶⁷⁸⁹]*(?=([⋅·+-/* )]|$))', settings.color_unit),  # units
-        #     (r'\$', settings.color_unit),  # units
-        #     (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", settings.color_text),  # numbers
-        #     ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.color_function),  # function call
-        #     # (r'\w+(?=\()', settings.style_function),  # function call
-        #     (r'@', settings.color_variable),  # variable name
-        #     (r'[+-/*=(),]', settings.color_operator),  # operator
-        #     (r'#.*$', settings.color_comment),  # comment
-        #     (r'\?', settings.color_error),  # ERROR
-        #     ('|'.join([rf'(\b{i}\b)' for i in constant_list]), settings.color_constant),  # comment
-        # ]
         for regexp, color in rule_pairs:
             rule_format = QTextCharFormat()
             rule_format.setForeground(QColor(color))
             self.rules.append((QRegularExpression(regexp), rule_format))
 
-        var_rule_format = QTextCharFormat()
-        var_rule_format.setForeground(QColor(self.settings.color_variable))
-        self.varQRegExp = QRegularExpression('')
-        self.updateVars()
-        self.rules.append((self.varQRegExp, var_rule_format))
+    def highlightBlock(self, text):
+        for pattern, char_format in self.rules:
+            match_iterator = QRegularExpression(pattern).globalMatch(text)
+            while match_iterator.hasNext():
+                match = match_iterator.next()
+                self.setFormat(match.capturedStart(), match.capturedLength(), char_format)
 
-        for regexp, color in post_rule_pairs:
+
+class BeeOutputSyntaxHighlighter(QSyntaxHighlighter):
+    def __init__(self, settings, parent=None):
+        super().__init__(parent)  # type: ignore
+
+        self.rules = []
+        rule_pairs = [  # order matters below, more general go first and are overridden by more specific
+            (r'[a-zA-Z_Ωμ°]+[0-9⁰¹²³⁴⁵⁶⁷⁸⁹]*\b', settings.color_unit),  # units
+            (r'\$', settings.color_unit),  # units
+            (r'[+-/*=(),]', settings.color_operator),  # operator
+            (r'\?', settings.color_error),  # ERROR
+            (r'<.*?>', settings.color_error),  # ERROR
+            (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", settings.color_text),  # numbers
+        ]
+        for regexp, color in rule_pairs:
             rule_format = QTextCharFormat()
             rule_format.setForeground(QColor(color))
             self.rules.append((QRegularExpression(regexp), rule_format))
-
-    def updateVars(self):
-        vars_re = r'|'.join([rf'\b({w})\b' for w in self.notepad.parser.vars.keys()])
-        self.varQRegExp.setPattern(vars_re) 
 
     def highlightBlock(self, text):
         for pattern, char_format in self.rules:
@@ -297,8 +289,8 @@ class MainWindow(QMainWindow):
 
         self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
         self.output.setWordWrapMode(QTextOption.WrapMode.NoWrap)
-        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.settings, self.notepad, self.input.document())
-        self.syntax_highlighter_out = BeeSyntaxHighlighter(self.settings, self.notepad, self.output.document())
+        self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings, tuple(self.notepad.parser.vars.keys()), self.input.document())
+        self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(self.settings, self.output.document())
 
         self.inputScrollbar = self.input.verticalScrollBar()
         self.inputScrollbar.hide()
@@ -334,7 +326,8 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(container)
 
-        self.input.textChanged.connect(self.processNotepad)
+        # self.input.textChanged.connect(self.processNotepad)
+        self.input.cursorPositionChanged.connect(self.processNotepad)
         self.input.setText(input_text)
         
     def eventFilter(self, obj, event):
@@ -668,8 +661,8 @@ class MainWindow(QMainWindow):
 
     def changeTheme(self, theme):
         self.settings = settingsdict(self.settings | default_themes[theme])
-        self.syntax_highlighter_in = BeeSyntaxHighlighter(self.settings,self.notepad, self.input.document())
-        self.syntax_highlighter_out = BeeSyntaxHighlighter(self.settings, self.notepad, self.output.document())
+        self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings,tuple(self.notepad.parser.vars.keys()), self.input.document())
+        self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(self.settings, self.output.document())
         self.updateStyle()
 
     def openSettings(self):
@@ -758,8 +751,9 @@ class MainWindow(QMainWindow):
         self.output.setReadOnly(True)
         self.outputScrollbar.setValue(self.inputScrollbar.value())
         self.keepScrollSynced = True
-        self.syntax_highlighter_in.updateVars()
-        
+        # self.syntax_highlighter_in.updateVars()   
+        self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings,tuple(self.notepad.parser.vars.keys()), self.input.document())
+
 
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
