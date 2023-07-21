@@ -37,7 +37,9 @@ class BeeParser():
     money2_re = re.compile(r"(( in)|( to))\s+\$")
     to_re = re.compile(r"\s+to\s+")
     of_re = re.compile(r"%\s+of\s+")
-    names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
+    # names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
+    names_re = re.compile(r"(?![0-9.])\s*\b[a-zA-Z]+\b(?!\s*=)")
+
 
     to_specials = str.maketrans("0123456789*", "⁰¹²³⁴⁵⁶⁷⁸⁹·")
     from_specials = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⋅·×", "0123456789***")
