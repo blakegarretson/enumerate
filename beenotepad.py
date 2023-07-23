@@ -28,7 +28,8 @@ import unitclass
 
 class BeeParser():
 
-    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\)*)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*\)*)|(?:%(?!\s+-*\+*[0-9])\)*))" )
+    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\)*)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*\)*))" )
+    unit_percent = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\)*)(?![eE][^a-zA-Z])\s*(%\)*)(?!\s*[0-9])" )
     # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))" )
     in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
     inch_re = re.compile(r"(?<![a-zA-Z ])in(?![a-zA-Z0-9])")
@@ -178,7 +179,23 @@ class BeeParser():
         # print('7>', text)
         text = text.translate(self.from_specials)
         # Replace implied units with Unit()
+        while match := self.unit_percent.search(text):
+            print('  unit %:', text)
+            numstr = match.group(1)
+            unitstr = match.group(2)
+            if unitstr.endswith(')'):
+                if numstr.startswith('('):
+                    unitstr = f"'{unitstr[:-1]}'"
+                    numstr = numstr[1:]
+                else:
+                    unitstr = f"'{unitstr[:-1]}')"
+            else:
+                numstr = numstr.replace('(','').replace(')','')
+                unitstr=f"'{unitstr}'"
+            replacement = f"Unit({numstr}, {unitstr})"
+            text = text[:match.start()] + replacement + text[match.end():]
         while match := self.unit_re.search(text):
+            print('  unit:', text)
             if match.group(2) in ('i', 'j'):
                 replacement = f'complex(0,{float(match.group(1))})'
             else:
@@ -216,7 +233,7 @@ class BeeParser():
         if debug:
             print("Preprocessed text:", text)
             print(ast.dump(ast.parse(text), indent=2))
-        # print('evaluate:',text)
+        print('evaluate:',text)
         value = self.evaluate(text)
         return value
 
