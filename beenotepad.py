@@ -28,9 +28,8 @@ import unitclass
 
 class BeeParser():
 
-    unit_re = re.compile(
-        r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))"
-    )
+    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\)*)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*\)*)|(?:%(?!\s+-*\+*[0-9])\)*))" )
+    # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))" )
     in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
     inch_re = re.compile(r"(?<![a-zA-Z ])in(?![a-zA-Z0-9])")
     money_re = re.compile(r"\$([0-9.]+)\b")
@@ -141,8 +140,8 @@ class BeeParser():
     def _replacer(self, match):
         repl = self.constants.get(match.group()) or self.vars.get(match.group())
         if repl:
-            return str(f'{repl}')
-            # return str(f'({repl})')
+            # return str(f'{repl}')
+            return str(f'({repl})')
         else:
             return match.group()  # no replacement
 
@@ -183,7 +182,19 @@ class BeeParser():
             if match.group(2) in ('i', 'j'):
                 replacement = f'complex(0,{float(match.group(1))})'
             else:
-                replacement = f"Unit({match.group(1)}, '{match.group(2)}')"
+                print(match.group(1), '----', match.group(2))
+                numstr = match.group(1)
+                unitstr = match.group(2)
+                if unitstr.endswith(')'):
+                    if numstr.startswith('('):
+                        unitstr = f"'{unitstr[:-1]}'"
+                        numstr = numstr[1:]
+                    else:
+                        unitstr = f"'{unitstr[:-1]}')"
+                else:
+                    numstr = numstr.replace('(','').replace(')','')
+                    unitstr=f"'{unitstr}'"
+                replacement = f"Unit({numstr}, {unitstr})"
             text = text[:match.start()] + replacement + text[match.end():]
 
         # print('8>', text)
@@ -206,6 +217,7 @@ class BeeParser():
         if debug:
             print("Preprocessed text:", text)
             print(ast.dump(ast.parse(text), indent=2))
+        print('evaluate:',text)
         value = self.evaluate(text)
         return value
 
