@@ -197,8 +197,8 @@ class BeeInputSyntaxHighlighter(QSyntaxHighlighter):
             (r'\$', settings.color_unit),  # units
             (r'(?<=\d)\s*%', settings.color_unit),  # conversion            
             (r'(?<=\d)\s*%\s*(?=\d)', settings.color_operator),  # conversion            
-            (r'[+-/*=(),]', settings.color_operator),  # operator
             ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.color_function),  # function call
+            (r'[+-/*=(),]', settings.color_operator),  # operator
             (r'\?', settings.color_error),  # ERROR
             ('|'.join([rf'(\b{i}\b)' for i in constant_list]), settings.color_constant),  # constant
             (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", settings.color_text),  # numbers
