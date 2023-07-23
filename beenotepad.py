@@ -182,7 +182,6 @@ class BeeParser():
             if match.group(2) in ('i', 'j'):
                 replacement = f'complex(0,{float(match.group(1))})'
             else:
-                print(match.group(1), '----', match.group(2))
                 numstr = match.group(1)
                 unitstr = match.group(2)
                 if unitstr.endswith(')'):
@@ -217,7 +216,7 @@ class BeeParser():
         if debug:
             print("Preprocessed text:", text)
             print(ast.dump(ast.parse(text), indent=2))
-        print('evaluate:',text)
+        # print('evaluate:',text)
         value = self.evaluate(text)
         return value
 

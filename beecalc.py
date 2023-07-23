@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                              QMainWindow, QMessageBox, QPushButton,
                              QRadioButton, QSizePolicy, QSpinBox, QSplitter,
                              QStatusBar, QStyle, QTextEdit, QToolBar,
-                             QVBoxLayout, QWidget)
+                             QVBoxLayout, QWidget, QScrollBar)
 
 import beenotepad
 
@@ -195,12 +195,15 @@ class BeeInputSyntaxHighlighter(QSyntaxHighlighter):
         rule_pairs = [  # order matters below, more general go first and are overridden by more specific
             (r'[a-zA-Z_Ωμ°]+[0-9⁰¹²³⁴⁵⁶⁷⁸⁹]*\b', settings.color_unit),  # units
             (r'\$', settings.color_unit),  # units
+            (r'(?<=\d)\s*%', settings.color_unit),  # conversion            
+            (r'(?<=\d)\s*%\s*(?=\d)', settings.color_operator),  # conversion            
             (r'[+-/*=(),]', settings.color_operator),  # operator
             ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.color_function),  # function call
             (r'\?', settings.color_error),  # ERROR
             ('|'.join([rf'(\b{i}\b)' for i in constant_list]), settings.color_constant),  # constant
             (r"\b\d+\.*\d*([Ee]|[Ee]-)*\d*", settings.color_text),  # numbers
             (r'(?<=[a-zA-Z_Ωμ°][0-9⁰¹²³⁴⁵⁶⁷⁸⁹])|(?<=[a-zA-Z_Ωμ°@])\s*(( in )|( to ))\s*(?=[a-zA-Z_Ωμ°])', settings.color_conversion),  # conversion
+            (r'(?<=%)\s+of\s+', settings.color_conversion),  # conversion
             (r'@', settings.color_variable),  # variable name
             (r'\w+\s*(?==)', settings.color_variable),  # variable name
             (self.var_re,settings.color_variable),  # variable name
@@ -308,6 +311,11 @@ class MainWindow(QMainWindow):
         self.inputScrollbar.valueChanged.connect(self.syncScroll)
         self.outputScrollbar.valueChanged.connect(self.syncScroll)
 
+        self.input.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.output.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.input.horizontalScrollBar().setFixedHeight(0)
+        self.output.horizontalScrollBar().setFixedHeight(0)
+
         # need this for tab completion
         self.tabPopupVisable = False
 
@@ -338,6 +346,10 @@ class MainWindow(QMainWindow):
         # self.input.textChanged.connect(self.processNotepad)
         self.input.cursorPositionChanged.connect(self.processNotepad)
         self.input.setText(input_text)
+        cursor = self.input.textCursor()
+        cursor.setPosition(len(input_text))
+        self.input.setTextCursor(cursor)
+
         
     def eventFilter(self, obj, event):
         if obj == self.input and event.type() == QEvent.Type.KeyPress:
@@ -763,7 +775,6 @@ class MainWindow(QMainWindow):
         self.keepScrollSynced = True
         final_vars = tuple(self.notepad.parser.vars.keys())
         if initial_vars != final_vars:
-            print('refreshing')
             self.syntax_highlighter_in.updateVars(self.notepad.parser.vars.keys())   
             self.syntax_highlighter_in.rehighlight()
         # self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings,tuple(self.notepad.parser.vars.keys()), self.input.document())

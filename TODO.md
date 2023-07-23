@@ -1,8 +1,5 @@
 # To Do
 
-- error: length**2
-- FIX: F=m*a, a variable named m with mess with this, 
-  - AND something like 4 kg*m will think m is 1m and mess with the output units
 - add reduce() func for units
 - list funcs, units, etc.
   - command or browser?
@@ -14,12 +11,14 @@
   - sum and average of all numbers in output
     - Stats too? min/max/stdev, etc
   - Always on top?
-- pane resizing
-- ctrl or shift plus the up arrow key should duplicate line
 - 
 
 ## Done
 
+- CTRL-D Duplicate line
+- pane resizing
+- FIX: F=m*a, a variable named m with mess with this, 
+  - AND something like 4 kg*m will think m is 1m and mess with the output units
 - style?, fonts?
 - FIX? vars are highlighted as units when not being set
 - FIX: vars are persistent across notepad
