@@ -28,7 +28,7 @@ import unitclass
 
 class BeeParser():
 
-    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)?[0-9]*\)*))")
+    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*(?![*/+-]))(?![eE][^a-zA-Z])\s*((?:[(*/]*[a-zA-Z_Ωμ°]+(?:\^|\*\*)?[0-9]*\)*)+)")
     unit_percent = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*)(?![eE][^a-zA-Z])\s*(%\)*)(?!\s*[0-9])" )
     # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))" )
     in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
@@ -39,6 +39,7 @@ class BeeParser():
     of_re = re.compile(r"%\s+of\s+")
     # names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
     names_re = re.compile(r"(?![0-9.])\s*\b[a-zA-Z]+\b(?!\s*=)")
+    parens_math = re.compile(r"(?<!\w)\([0-9 +-/*^]+?\)")
 
 
     to_specials = str.maketrans("0123456789*", "⁰¹²³⁴⁵⁶⁷⁸⁹·")
@@ -178,39 +179,45 @@ class BeeParser():
 
         # print('7>', text)
         text = text.translate(self.from_specials)
+
+        # process basic math in parentheses
+        while match := self.parens_math.search(text):
+            print('parens>>>', match.group())
+            replacement = self.evaluate(match.group())
+            text = text[:match.start()] + str(replacement) + text[match.end():]
+
         # Replace implied units with Unit()
         while match := self.unit_percent.search(text):
             print('  unit %:', text)
             numstr = match.group(1)
             unitstr = match.group(2)
             if unitstr.endswith(')'):
-                if numstr.startswith('('):
-                    unitstr = f"'{unitstr[:-1]}'"
+                unitstr = f"'{unitstr[:-1]}'"
+                if numstr.startswith('('):                   
                     numstr = numstr[1:]
-                else:
-                    unitstr = f"'{unitstr[:-1]}')"
             else:
                 numstr = numstr.replace('(','').replace(')','')
                 unitstr=f"'{unitstr}'"
             replacement = f"Unit({numstr}, {unitstr})"
             text = text[:match.start()] + replacement + text[match.end():]
+
         while match := self.unit_re.search(text):
             print('  unit:', text)
             if match.group(2) in ('i', 'j'):
                 replacement = f'complex(0,{float(match.group(1))})'
             else:
-                numstr = match.group(1)
-                unitstr = match.group(2)
-                if unitstr.endswith(')'):
-                    if numstr.startswith('('):
-                        unitstr = f"'{unitstr[:-1]}'"
-                        numstr = numstr[1:]
-                    else:
-                        unitstr = f"'{unitstr[:-1]}')"
+                numstr = match.group(1).strip()
+                while numstr.startswith('(') and numstr.endswith(')'):
+                    numstr = numstr[1:-1]
+                unitstr = match.group(2).strip()
+                combined = f'{numstr};;;{unitstr}'
+                while combined.startswith('(') and combined.endswith(')'):
+                    combined = combined[1:-1]
+                if combined.endswith(')') and ('(' not in combined):
+                    replacement = f"Unit('{combined[:-1]}'))"
                 else:
-                    numstr = numstr.replace('(','').replace(')','')
-                    unitstr=f"'{unitstr}'"
-                replacement = f"Unit({numstr}, {unitstr})"
+                    replacement = f"Unit('{combined}')"
+            print('  unit2:', text)
             text = text[:match.start()] + replacement + text[match.end():]
 
         # print('8>', text)
@@ -233,6 +240,7 @@ class BeeParser():
         if debug:
             print("Preprocessed text:", text)
             print(ast.dump(ast.parse(text), indent=2))
+        text = text.replace(';;;',' ')
         print('evaluate:',text)
         value = self.evaluate(text)
         return value
@@ -373,80 +381,80 @@ class BeeNotepad:
 if __name__ == '__main__':
     pad = BeeNotepad()
     pad.append("1+2")
-    pad.append("pi")
-    pad.append("Unit(1,'mm')")
-    pad.append('a=2')
-    pad.append("a*3")
-    pad.append('pi=3')
-    pad.append('pi*2')
-    pad.append("2m*3in")
-    pad.append("2in*3in")
-    pad.append('1 in in mm')
-    pad.append('1    in in mm')
-    pad.append('c = 8 in')
-    pad.append('c in mm')
-    pad.append('8 % 3')
-    pad.append('50 % of 8')
-    pad.append('20% of 100')
-    pad.append('20% in ppm')
-    pad.append('20% in unitless')
-    pad.append('0.8 _ in %')  # , debug=True)
-    pad.append('40 pcf in kg/m3')
-    pad.append('40 lb/ft3 in kg/m3')
-    pad.append('40 lb/ft3 to kg/m3')
-    pad.append('2*5 in in mm')
-    pad.append('12*12 ft2 in m2')
-    pad.append('50.8mm*2in')
-    pad.append('50.8mm*2in in in2')
-    pad.append('50.8mm*2in to in2')
-    pad.append('total = 32')
-    pad.append('rate = 8')
-    pad.append('rate/total')
-    pad.append('3 _ in m')
-    # pad._parse('rate/total in m', debug=True)
-    pad.append('rate/total')
-    pad.append('sin(90 deg in rad)')
-    pad.append('(6in in m) /1kg')
-    pad.append('(6in in m)/kg')
-    pad.append('(39in in m)/kg')
-    pad.append('9.81m/1s/1s in ft/1s/1s')
-    pad.append('(9.81m/s/s in ft/s/s)/kg')
-    pad.append('(9.81m/s/s in ft/(s*s))/kg')
-    pad.append('5*(1+2)')
-    pad.append('5(1+2)')
-    pad.append('a=8')
-    pad.append('a*(1+2)')
-    pad.append('a(1+2)')
-    pad.append('sin(90 deg)')
-    pad.append('sin(pi/2)')
-    # pad.append('sin(pi rad)', debug=True)
-    pad.append('aaa=90', debug=True)
-    pad.append('sin(aaa deg)', debug=True)
-    pad.append('sin(pi rad/2)', debug=True)
-    pad.append('-1', debug=True)
-    pad.append('+1', debug=True)
-    pad.append('# Comment')
-    pad.append('1+3 # Comment')
-    pad.append('316 mm')
-    print('@@@@@')
-    pad.append('@ -300', debug=True)
-    pad.append('3in *3in', debug=True)
-    pad.append('27 lb/ans in psi', debug=True)
-    pad.append('1um', debug=True)
-    pad.append('@ + 1', debug=True)
-    pad.append('1E3')
-    pad.append('1e3')
-    pad.append('1e3 mm', debug=True)
-    pad.append('10.3e3 mm', debug=True)
-    pad.append('(4m to inch)+(5m to mm)', debug=True)
-    pad.append('2.6162e+07 μm', debug=True)
-    pad.append('400g/((4in in mm) * 54mm* (5in in mm))', debug=True)
-    pad.append('ans', debug=True)
-    pad.append('400g/(45mm * 54mm* 5in)')
-    pad.append('ans in pcf', debug=True)
-    pad.append('1j')
-    pad.append('1i')
-    pad.append('3+4j')
-    pad.append('1 USD in pennies')
-    pad.append('10USD in $')
-    # pad.append('ans')
+    # pad.append("pi")
+    # pad.append("Unit(1,'mm')")
+    # pad.append('a=2')
+    # pad.append("a*3")
+    # pad.append('pi=3')
+    # pad.append('pi*2')
+    # pad.append("2m*3in")
+    # pad.append("2in*3in")
+    # pad.append('1 in in mm')
+    # pad.append('1    in in mm')
+    # pad.append('c = 8 in')
+    # pad.append('c in mm')
+    # pad.append('8 % 3')
+    # pad.append('50 % of 8')
+    # pad.append('20% of 100')
+    # pad.append('20% in ppm')
+    # pad.append('20% in unitless')
+    # pad.append('0.8 _ in %')  # , debug=True)
+    # pad.append('40 pcf in kg/m3')
+    # pad.append('40 lb/ft3 in kg/m3')
+    # pad.append('40 lb/ft3 to kg/m3')
+    # pad.append('2*5 in in mm')
+    # pad.append('12*12 ft2 in m2')
+    # pad.append('50.8mm*2in')
+    # pad.append('50.8mm*2in in in2')
+    # pad.append('50.8mm*2in to in2')
+    # pad.append('total = 32')
+    # pad.append('rate = 8')
+    # pad.append('rate/total')
+    # pad.append('3 _ in m')
+    # # pad._parse('rate/total in m', debug=True)
+    # pad.append('rate/total')
+    # pad.append('sin(90 deg in rad)')
+    # pad.append('(6in in m) /1kg')
+    # pad.append('(6in in m)/kg')
+    # pad.append('(39in in m)/kg')
+    # pad.append('9.81m/1s/1s in ft/1s/1s')
+    # pad.append('(9.81m/s/s in ft/s/s)/kg')
+    # pad.append('(9.81m/s/s in ft/(s*s))/kg')
+    # pad.append('5*(1+2)')
+    # pad.append('5(1+2)')
+    # pad.append('a=8')
+    # pad.append('a*(1+2)')
+    # pad.append('a(1+2)')
+    # pad.append('sin(90 deg)')
+    # pad.append('sin(pi/2)')
+    # # pad.append('sin(pi rad)', debug=True)
+    # pad.append('aaa=90', debug=True)
+    # pad.append('sin(aaa deg)', debug=True)
+    # pad.append('sin(pi rad/2)', debug=True)
+    # pad.append('-1', debug=True)
+    # pad.append('+1', debug=True)
+    # pad.append('# Comment')
+    # pad.append('1+3 # Comment')
+    # pad.append('316 mm')
+    # print('@@@@@')
+    # pad.append('@ -300', debug=True)
+    # pad.append('3in *3in', debug=True)
+    # pad.append('27 lb/ans in psi', debug=True)
+    # pad.append('1um', debug=True)
+    # pad.append('@ + 1', debug=True)
+    # pad.append('1E3')
+    # pad.append('1e3')
+    # pad.append('1e3 mm', debug=True)
+    # pad.append('10.3e3 mm', debug=True)
+    # pad.append('(4m to inch)+(5m to mm)', debug=True)
+    # pad.append('2.6162e+07 μm', debug=True)
+    # pad.append('400g/((4in in mm) * 54mm* (5in in mm))', debug=True)
+    # pad.append('ans', debug=True)
+    # pad.append('400g/(45mm * 54mm* 5in)')
+    # pad.append('ans in pcf', debug=True)
+    # pad.append('1j')
+    # pad.append('1i')
+    # pad.append('3+4j')
+    # pad.append('1 USD in pennies')
+    # pad.append('10USD in $')
+    pad.append('(5+1/2) inches')
