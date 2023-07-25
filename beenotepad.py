@@ -37,7 +37,7 @@ class BeeParser():
     to_re = re.compile(r"\s+to\s+")
     of_re = re.compile(r"%\s+of\s+")
     # names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
-    names_re = re.compile(r"(?<![\d.@)] )\b([a-zA-Z]\w*)\b\s*(?!=)")
+    names_re = re.compile(r"(?<![\d.@)] )\b([a-zA-Z]\w*)\b(?!=| =)")
     # (?<![\d.)])\s*(\b[a-zA-Z]\w*\b)\s*(?!=)
     parens_math = re.compile(r"(?<!\w)\([0-9 +-/*^]+?\)")
     implied_mult = r""
