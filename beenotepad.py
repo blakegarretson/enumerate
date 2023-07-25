@@ -140,6 +140,8 @@ class BeeParser():
             'min': min,
             'pow': pow,
             'round': round,
+            'expand':self._expand,
+            'simplify':self._simplify,
         }
 
         self.angle_funcs = ['cos', 'sin', 'tan']
@@ -154,6 +156,19 @@ class BeeParser():
             return f'({repl})'
         else:
             return match.group()  # no replacement
+    def _expand(self, value):
+        if isinstance(value, Unit):
+            return value.expand()
+        else:  # left side was not a unit
+            return Unit(value).expand()
+
+    def _simplify(self, value):
+        if isinstance(value, Unit):
+            return value.simplify()
+        else:  # left side was not a unit
+            return Unit(value).simplify()
+
+
 
     def parse(self, text, debug=False):
         """Preprocess input string before parsing

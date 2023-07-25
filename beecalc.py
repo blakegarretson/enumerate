@@ -117,8 +117,8 @@ default_notepads = {
     'current':
     0,
     'notepads': [[
-        '# Welcome to BeeCalc!', '2+3', '@+1', '2 lb in grams',
-        'width = 20 ft', 'length = 10 ft', 'area = length*width', '@ in in2',
+        '# Welcome to BeeCalc!', '2+3', '@+1', '2 lb to grams',
+        'width = 20 ft', 'length = 10 ft', 'area = length*width', '@ to in2',
         'sin(90deg)', 'sin(pi/2)'
     ], ['a=1', 'b=2 # this is a comment', 'c=3', 'total=a+b+c']]
 }
