@@ -37,13 +37,13 @@ class BeeParser():
     to_re = re.compile(r"\s+to\s+")
     of_re = re.compile(r"%\s+of\s+")
     # names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
-    names_re = re.compile(r"(?<![\d.@)] )\b([a-zA-Z]\w*)\b(?!=| =)")
+    names_re = re.compile(r"(?<![\w.@)] )\b([a-zA-Z]\w*)\b(?!=| =)")
     # (?<![\d.)])\s*(\b[a-zA-Z]\w*\b)\s*(?!=)
     parens_math = re.compile(r"(?<!\w)\([0-9 +-/*^]+?\)")
     implied_mult = r""
     extra_spaces_re = re.compile(r"\s\s+")
     eliminate_spaces_re = re.compile(r" (?=\))|(?<=\() | (?=[+\-*/^])|(?<=[+\-*/^]) ")
-
+    double_in_re = re.compile(r" in in\s+(?!$)")
 
     to_specials = str.maketrans("0123456789*", "⁰¹²³⁴⁵⁶⁷⁸⁹·")
     from_specials = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⋅·×", "0123456789***")
@@ -158,19 +158,19 @@ class BeeParser():
 
         The 'of' operator must come at the end of the line, only folowed by a number.
         """
-        # print('>>', text)
+        print('>>', text)
         text = text.strip().replace('^', '**')
         # print('>>>', text)
 
         text = self.extra_spaces_re.sub(' ', text)
         text = self.eliminate_spaces_re.sub('', text)
 
-
         if '#' in text:
             text = text[:text.find('#')]
 
         text = text.replace('@', 'ans')
-
+        text = self.double_in_re.sub(' in to ', text)
+        
         # process 'of' first so % doesn't get confused with the % unit
         if match := self.of_re.search(text):
             text = '((' + text[:match.start()] + \
@@ -187,9 +187,9 @@ class BeeParser():
 # 
 
         # preprocess vars/constants to make them work with units
-        # print("BEFORE:",text)
+        print("BEFORE:",text)
         text = self.names_re.sub(self._replacer, text)
-        # print("     >:",text)
+        print("     >:",text)
 
         # handle money, $ prefix to USD suffix
         while match := self.money_re.search(text):

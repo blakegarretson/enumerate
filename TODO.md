@@ -1,5 +1,6 @@
 # To Do
 
+- backspace shojld refresh (call processNotepad)
 - add reduce() func for units
 - list funcs, units, etc.
   - command or browser?
