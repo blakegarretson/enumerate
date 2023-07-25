@@ -146,12 +146,12 @@ class BeeParser():
 
     def _replacer(self, match):
         repl = self.constants.get(match.group(1).strip()) or self.vars.get(match.group(1).strip())
-        print('trying to replace...')
-        print('   match: ', match.group(1).strip())
+        # print('trying to replace...')
+        # print('   match: ', match.group(1).strip())
         if repl:
             # return str(f'{repl}')
-            print('   replacing ', repl)
-            return str(f'({repl})')
+            # print('   replacing ', repl)
+            return f'({repl})'
         else:
             return match.group()  # no replacement
 
@@ -160,7 +160,7 @@ class BeeParser():
 
         The 'of' operator must come at the end of the line, only folowed by a number.
         """
-        print('>>', text)
+        # print('>>', text)
         text = text.strip().replace('^', '**')
         # print('>>>', text)
 
@@ -194,9 +194,9 @@ class BeeParser():
 # 
 
         # preprocess vars/constants to make them work with units
-        print("BEFORE:",text)
+        # print("BEFORE:",text)
         text = self.names_re.sub(self._replacer, text)
-        print("     >:",text)
+        # print("     >:",text)
 
         # handle money, $ prefix to USD suffix
         while match := self.money_re.search(text):
@@ -204,17 +204,17 @@ class BeeParser():
         while match := self.money2_re.search(text):
             text = text[:match.start()] + f'{match.group(1)} USD' + text[match.end():]
 
-        print('7>', text)
+        # print('7>', text)
         text = text.translate(self.from_specials)
 
         unit_replacements = {}
         unit_idx = 1
         while match := self.unit_re.search(text):
-            print('unit match:', match.group())
+            # print('unit match:', match.group())
             numstr = match.group(1) or 1
             unitstr = match.group(4)
-            print(f'  num: "{numstr}"')
-            print(f'  unit: "{unitstr}"')
+            # print(f'  num: "{numstr}"')
+            # print(f'  unit: "{unitstr}"')
             if unitstr in ('i', 'j'):
                 replacement = f'complex(0,{float(numstr)})'
             else:
@@ -225,7 +225,7 @@ class BeeParser():
             text = text[:match.start()] + idx + text[match.end():]
         for key, val in unit_replacements.items():
             text = text.replace(key, val)
-        print('8>', text)
+        # print('8>', text)
         
         # Restore the in operator
         text = text.replace('@@@','in ')
@@ -235,7 +235,7 @@ class BeeParser():
             print("Preprocessed text:", text)
             print(ast.dump(ast.parse(text), indent=2))
         
-        print('evaluate:',text)
+        # print('evaluate:',text)
         value = self.evaluate(text)
         return value
 

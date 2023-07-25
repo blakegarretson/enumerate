@@ -6,7 +6,7 @@ from pathlib import Path
 
 import unitclass
 from PyQt6.QtCore import (QCoreApplication, QEvent, QMargins, QPoint,
-                          QRegularExpression, QSize, Qt)
+                          QRegularExpression, QSize, Qt, QTimer)
 from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
                          QTextCharFormat, QTextOption)
@@ -364,6 +364,12 @@ class MainWindow(QMainWindow):
                 if self.tabPopupVisable:
                     self.tabPopupVisable = False
                     return True
+            elif event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
+                print('deleting')
+                self.timer = QTimer()
+                self.timer.timeout.connect(self.processNotepad)
+                self.timer.start(20)
+                return super().eventFilter(obj, event)
         return super().eventFilter(obj, event)
 
     def tabCompletion(self):
