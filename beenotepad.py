@@ -189,8 +189,8 @@ class BeeParser():
         # text = self.in_re.sub('@@@', text)
         # while match := self.to_re.search(text):
         #     text = text[:match.start()] + '@@@' + text[match.end():]
-        while match := self.in_re.search(text):
-            text = text[:match.start()] + match.group(1)+ ' @@@ ' + text[match.end():]
+        # while match := self.in_re.search(text):
+        #     text = text[:match.start()] + match.group(1)+ ' @@@ ' + text[match.end():]
 # 
 
         # preprocess vars/constants to make them work with units
@@ -227,8 +227,9 @@ class BeeParser():
             text = text.replace(key, val)
         # print('8>', text)
         
-        # Restore the in operator
+        # Restore the to placeholder for the in operator
         text = text.replace('@@@','in ')
+        # implied multiplication
         text = text.replace(")Unit('", ")*Unit('")
 
         if debug:
