@@ -365,7 +365,6 @@ class MainWindow(QMainWindow):
                     self.tabPopupVisable = False
                     return True
             elif event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
-                print('deleting')
                 self.timer = QTimer()
                 self.timer.timeout.connect(self.processNotepad)
                 self.timer.start(20)
