@@ -772,12 +772,19 @@ class MainWindow(QMainWindow):
                 if out:
                     self.notepad.parser.vars['ans'] = out
             except (ValueError, NameError, SyntaxError,
-                    unitclass.UnavailableUnit,
-                    unitclass.InconsistentUnitsError, TypeError,
+                    unitclass.UnavailableUnit, TypeError,
                     AttributeError, Exception) as err:
+                print('err1')
                 self.status_bar.showMessage(str(err), 3000)
                 errored = True
-                outtext = ('?', 1)
+                out_msg = '?'
+                outtext = (out_msg, len(out_msg))
+            except (unitclass.InconsistentUnitsError) as err:
+                print('err2')
+                self.status_bar.showMessage(str(err), 3000)
+                errored = True
+                out_msg = '<Inconsistent units>'
+                outtext = (out_msg, len(out_msg))
             all_output.append(outtext)
         if not errored:
             self.status_bar.clearMessage()
