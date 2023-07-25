@@ -27,19 +27,22 @@ import unitclass
 
 
 class BeeParser():
-
-    unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*(?![*/+-]))(?![eE][^a-zA-Z])\s*((?:[(*/]*[a-zA-Z_Ωμ°]+(?:\^|\*\*)?[0-9]*\)*)+)")
+    num_re = r"((?:[-+])?[.,]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:(?:[+-])?\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
+    unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|(?:\*\*))?[0-9]+)?)\b(?!\s*[=])")
     unit_percent = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*)(?![eE][^a-zA-Z])\s*(%\)*)(?!\s*[0-9])" )
     # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))" )
-    in_re = re.compile(r"\s+in\s+([^()]+)(\s+.*|$)")
-    inch_re = re.compile(r"(?<![a-zA-Z ])in(?![a-zA-Z0-9])")
+    in_re = re.compile(r"([a-zA-Z]\d*\)*)\s+in\s+(?=[(a-zA-Z]+)")
     money_re = re.compile(r"\$([0-9.]+)\b")
     money2_re = re.compile(r"(( in)|( to))\s+\$")
     to_re = re.compile(r"\s+to\s+")
     of_re = re.compile(r"%\s+of\s+")
     # names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
-    names_re = re.compile(r"(?![0-9.])\s*\b[a-zA-Z]+\b(?!\s*=)")
+    names_re = re.compile(r"(?<![\d.@)] )\b([a-zA-Z]\w*)\b\s*(?!=)")
+    # (?<![\d.)])\s*(\b[a-zA-Z]\w*\b)\s*(?!=)
     parens_math = re.compile(r"(?<!\w)\([0-9 +-/*^]+?\)")
+    implied_mult = r""
+    extra_spaces_re = re.compile(r"\s\s+")
+    eliminate_spaces_re = re.compile(r" (?=\))|(?<=\() | (?=[+\-*/^])|(?<=[+\-*/^]) ")
 
 
     to_specials = str.maketrans("0123456789*", "⁰¹²³⁴⁵⁶⁷⁸⁹·")
@@ -140,9 +143,12 @@ class BeeParser():
         self.angle_funcs = ['cos', 'sin', 'tan']
 
     def _replacer(self, match):
-        repl = self.constants.get(match.group()) or self.vars.get(match.group())
+        repl = self.constants.get(match.group(1).strip()) or self.vars.get(match.group(1).strip())
+        print('trying to replace...')
+        print('   match: ', match.group(1).strip())
         if repl:
             # return str(f'{repl}')
+            print('   replacing ', repl)
             return str(f'({repl})')
         else:
             return match.group()  # no replacement
@@ -156,6 +162,10 @@ class BeeParser():
         text = text.strip().replace('^', '**')
         # print('>>>', text)
 
+        text = self.extra_spaces_re.sub(' ', text)
+        text = self.eliminate_spaces_re.sub('', text)
+
+
         if '#' in text:
             text = text[:text.find('#')]
 
@@ -165,6 +175,16 @@ class BeeParser():
         if match := self.of_re.search(text):
             text = '((' + text[:match.start()] + \
                 f')/100)*' + text[match.end():]
+
+        # process 'in' conversion
+        ## swap "to" and "in" for @@@ so it doesn't get confused during unit detection
+        text = self.to_re.sub(' @@@ ', text)
+        # text = self.in_re.sub('@@@', text)
+        # while match := self.to_re.search(text):
+        #     text = text[:match.start()] + '@@@' + text[match.end():]
+        while match := self.in_re.search(text):
+            text = text[:match.start()] + match.group(1)+ ' @@@ ' + text[match.end():]
+# 
 
         # preprocess vars/constants to make them work with units
         # print("BEFORE:",text)
@@ -177,70 +197,50 @@ class BeeParser():
         while match := self.money2_re.search(text):
             text = text[:match.start()] + f'{match.group(1)} USD' + text[match.end():]
 
-        # print('7>', text)
+        print('7>', text)
         text = text.translate(self.from_specials)
 
-        # process basic math in parentheses
-        while match := self.parens_math.search(text):
-            print('parens>>>', match.group())
-            replacement = self.evaluate(match.group())
-            text = text[:match.start()] + str(replacement) + text[match.end():]
-
-        # Replace implied units with Unit()
-        while match := self.unit_percent.search(text):
-            print('  unit %:', text)
-            numstr = match.group(1)
-            unitstr = match.group(2)
-            if unitstr.endswith(')'):
-                unitstr = f"'{unitstr[:-1]}'"
-                if numstr.startswith('('):                   
-                    numstr = numstr[1:]
-            else:
-                numstr = numstr.replace('(','').replace(')','')
-                unitstr=f"'{unitstr}'"
-            replacement = f"Unit({numstr}, {unitstr})"
-            text = text[:match.start()] + replacement + text[match.end():]
-
+        unit_replacements = {}
+        unit_idx = 1
         while match := self.unit_re.search(text):
-            print('  unit:', text)
-            if match.group(2) in ('i', 'j'):
-                replacement = f'complex(0,{float(match.group(1))})'
+            print('unit match:', match.group())
+            numstr = match.group(1) or 1
+            unitstr = match.group(4)
+            print(f'  num: "{numstr}"')
+            print(f'  unit: "{unitstr}"')
+            if unitstr in ('i', 'j'):
+                replacement = f'complex(0,{float(numstr)})'
             else:
-                numstr = match.group(1).strip()
-                while numstr.startswith('(') and numstr.endswith(')'):
-                    numstr = numstr[1:-1]
-                unitstr = match.group(2).strip()
-                combined = f'{numstr};;;{unitstr}'
-                while combined.startswith('(') and combined.endswith(')'):
-                    combined = combined[1:-1]
-                if combined.endswith(')') and ('(' not in combined):
-                    replacement = f"Unit('{combined[:-1]}'))"
-                else:
-                    replacement = f"Unit('{combined}')"
-            print('  unit2:', text)
-            text = text[:match.start()] + replacement + text[match.end():]
+                replacement = f"Unit('{numstr} {unitstr}')"
+            idx = f'@@{unit_idx}@@'
+            unit_idx += 1
+            unit_replacements[idx] = replacement
+            text = text[:match.start()] + idx + text[match.end():]
+        for key, val in unit_replacements.items():
+            text = text.replace(key, val)
+        print('8>', text)
 
-        # print('8>', text)
-        # process 'in' conversion
-        # swap "to" for "in"
-        while match := self.to_re.search(text):
-            text = text[:match.start()] + ' in ' + text[match.end():]
-        # swap in Unit() call for the "to/in" unit
-        while match := self.in_re.search(text):
-            text = text[:match.start()] + \
-                f' in Unit("{match.group(1)}") {match.group(2)}'
+        ## swap in Unit() call for the "to/in" unit
+        # while match := self.in_re.search(text):
+        #     text = text[:match.start()] + \
+        #         f' in Unit("{match.group(1)}") {match.group(2)}'
         # print('9>', text)
 
-        # handle value like 4 g/(mm²·in), which turns into:
+        # Rename 'in' unit to 'inch'
+        # handles value like 4 g/(mm²·in), which turns into:
         # Unit(4, 'g')/(mm2*in)
         # Which gives and error because 'in' is a keyword.
-        while match := self.inch_re.search(text):
-            text = text[:match.start()] + 'inch' + text[match.end():]
+        # while match := self.inch_re.search(text):
+        #     text = text[:match.start()] + 'inch' + text[match.end():]
+        
+        # Restore the in operator
+        text = text.replace('@@@','in ')
+        text = text.replace(")Unit('", ")*Unit('")
 
         if debug:
             print("Preprocessed text:", text)
             print(ast.dump(ast.parse(text), indent=2))
-        text = text.replace(';;;',' ')
+        
         print('evaluate:',text)
         value = self.evaluate(text)
         return value
@@ -380,7 +380,7 @@ class BeeNotepad:
 
 if __name__ == '__main__':
     pad = BeeNotepad()
-    pad.append("1+2")
+    # pad.append("1+2")
     # pad.append("pi")
     # pad.append("Unit(1,'mm')")
     # pad.append('a=2')
@@ -457,4 +457,9 @@ if __name__ == '__main__':
     # pad.append('3+4j')
     # pad.append('1 USD in pennies')
     # pad.append('10USD in $')
-    pad.append('(5+1/2) inches')
+    # pad.append('(5+1/2) inches')
+    # pad.append('90 deg + pi rad')
+    # pad.append('1 mm + 3 m', debug=True)
+    # pad.append('1 m*A/hr')
+    # print(pad.append('m/s in in/hr'))
+    print(pad.append('3 (m*g)/(s*g) + 3'))
