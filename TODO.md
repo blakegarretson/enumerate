@@ -1,5 +1,4 @@
 # To Do
-- add reduce() func for units
 - list funcs, units, etc.
   - command or browser?
   - tab completion

@@ -9,7 +9,7 @@ from PyQt6.QtCore import (QCoreApplication, QEvent, QMargins, QPoint,
                           QRegularExpression, QSize, Qt, QTimer)
 from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
-                         QTextCharFormat, QTextOption)
+                         QTextCharFormat, QTextOption, QTextCursor)
 from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                              QDialog, QDialogButtonBox, QFontComboBox, QFrame,
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit,
@@ -342,7 +342,8 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence('Ctrl+N'), self).activated.connect(self.addNotepad)
         QShortcut(QKeySequence('Ctrl+M'), self).activated.connect(self.toggleMenuToolbar)
         QShortcut(QKeySequence('Ctrl+Shift+F'), self).activated.connect(self.toggleStyleToolbar)
-        QShortcut(QKeySequence('Ctrl+S'), self).activated.connect(self.saveAll)
+        QShortcut(QKeySequence('Ctrl+Shift+S'), self).activated.connect(self.simplify)
+        QShortcut(QKeySequence('Ctrl+Shift+E'), self).activated.connect(self.expand)
 
         self.setCentralWidget(container)
 
@@ -372,7 +373,7 @@ class MainWindow(QMainWindow):
                 self.timer.start(20)
                 return super().eventFilter(obj, event)
         return super().eventFilter(obj, event)
-
+    
     def tabCompletion(self):
         position = self.input.textCursor().position()
         line = self.input.toPlainText()[:position].split('\n')[-1]
@@ -414,6 +415,19 @@ class MainWindow(QMainWindow):
         cursor = self.input.textCursor()
         cursor.setPosition(start+len(newword))
         self.input.setTextCursor(cursor)
+    def simplify(self):
+        cursor = self.input.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.EndOfLine)
+        self.input.setTextCursor(cursor)
+        self.input.insertPlainText("\nsimplify(@)")
+        self.input.ensureCursorVisible()
+        #self.inputScrollbar.setValue(self.input.textCursor().position())
+    def expand(self):
+        cursor = self.input.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.EndOfLine)
+        self.input.setTextCursor(cursor)
+        self.input.insertPlainText("\nexpand(@)")
+        self.input.ensureCursorVisible()
 
     def updateStyle(self):
         self.setStyleSheet(f"""
