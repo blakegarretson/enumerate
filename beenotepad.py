@@ -27,20 +27,22 @@ import unitclass
 
 
 class BeeParser():
-    num_re = r"((?:[-+])?[.,]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:(?:[+-])?\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
+    num_re = r"([.]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
+    # num_re = r"((?:[-+])?[.,]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:(?:[+-])?\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
     unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|(?:\*\*))?[0-9]+)?)\b(?!\s*[=])")
-    unit_percent = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*)(?![eE][^a-zA-Z])\s*(%\)*)(?!\s*[0-9])" )
+    # unit_percent = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*)(?![eE][^a-zA-Z])\s*(%\)*)(?!\s*[0-9])" )
+    percent_re = re.compile(r"%(?!\s*\d)")
     # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))" )
     in_re = re.compile(r"([a-zA-Z]\d*\)*)\s+in\s+(?=[(a-zA-Z]+)")
     money_re = re.compile(r"\$([0-9.]+)\b")
     money2_re = re.compile(r"(( in)|( to))\s+\$")
     to_re = re.compile(r"\s+to\s+")
     of_re = re.compile(r"%\s+of\s+")
+    factorial_re = re.compile(r"(\d+)\s*!")
     # names_re = re.compile(r"\b[a-zA-Z]+\b(?!\s*=)")
     names_re = re.compile(r"(?<![\w.@)] )\b([a-zA-Z]\w*)\b(?!=| =)")
     # (?<![\d.)])\s*(\b[a-zA-Z]\w*\b)\s*(?!=)
     parens_math = re.compile(r"(?<!\w)\([0-9 +-/*^]+?\)")
-    implied_mult = r""
     extra_spaces_re = re.compile(r"\s\s+")
     eliminate_spaces_re = re.compile(r" (?=\))|(?<=\() | (?=[+\-*/^])|(?<=[+\-*/^]) ")
     double_in_re = re.compile(r" in in\s+(?!$)")
@@ -170,11 +172,16 @@ class BeeParser():
 
         text = text.replace('@', 'ans')
         text = self.double_in_re.sub(' in to ', text)
-        
+
         # process 'of' first so % doesn't get confused with the % unit
         if match := self.of_re.search(text):
             text = '((' + text[:match.start()] + \
                 f')/100)*' + text[match.end():]
+            
+        text = self.percent_re.sub('pct', text)
+
+        while match := self.factorial_re.search(text):
+            text = text[:match.start()] + f'factorial({match.group(1)})' + text[match.end():]
 
         # process 'in' conversion
         ## swap "to" and "in" for @@@ so it doesn't get confused during unit detection
@@ -219,19 +226,6 @@ class BeeParser():
         for key, val in unit_replacements.items():
             text = text.replace(key, val)
         print('8>', text)
-
-        ## swap in Unit() call for the "to/in" unit
-        # while match := self.in_re.search(text):
-        #     text = text[:match.start()] + \
-        #         f' in Unit("{match.group(1)}") {match.group(2)}'
-        # print('9>', text)
-
-        # Rename 'in' unit to 'inch'
-        # handles value like 4 g/(mm²·in), which turns into:
-        # Unit(4, 'g')/(mm2*in)
-        # Which gives and error because 'in' is a keyword.
-        # while match := self.inch_re.search(text):
-        #     text = text[:match.start()] + 'inch' + text[match.end():]
         
         # Restore the in operator
         text = text.replace('@@@','in ')
@@ -462,4 +456,5 @@ if __name__ == '__main__':
     # pad.append('1 mm + 3 m', debug=True)
     # pad.append('1 m*A/hr')
     # print(pad.append('m/s in in/hr'))
-    print(pad.append('3 (m*g)/(s*g) + 3'))
+    # print(pad.append('3 (m*g)/(s*g) + 3'))
+    print(pad.append('5!'))
