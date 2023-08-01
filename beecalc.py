@@ -285,7 +285,7 @@ class MainWindow(QMainWindow):
 
         font_families = QFontDatabase.families()
         if settings.font not in font_families:
-            for fontname in ['Consolas', 'Andale Mono', 'Courier New', 'Courier']:
+            for fontname in ['Consolas', 'Andale Mono', 'Courier New', 'Noto Sans Mono', 'Monospace', 'Courier']:
                 if fontname in font_families:
                     self.settings.font = fontname
                     break
@@ -781,7 +781,8 @@ class MainWindow(QMainWindow):
                     out_msg = "<Unclosed '('>"
                     errstr = "'(' was never closed"
                 else:
-                    out_msg = errstr
+                    out_msg = '?'
+                    errstr = "Invalid syntax"
             except IndexError as err:
                 errstr, errored = str(err), True
                 out_msg = '?'

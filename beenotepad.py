@@ -481,4 +481,4 @@ if __name__ == '__main__':
     # print(pad.append("sin(90deg)"))
     # print(pad.append("sin(90°)"))
     # print(pad.append('5!'))
-    # print(pad.append('sin().sd'))
+    # print(pad.append('length = '))
