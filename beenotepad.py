@@ -29,13 +29,14 @@ import unitclass
 class BeeParser():
     num_re = r"([.]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
     # num_re = r"((?:[-+])?[.,]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:(?:[+-])?\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
-    unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|(?:\*\*))?[0-9]+)?)\b(?!\s*[=])")
+    unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|\*\*)?[0-9]+)*)(?:\b|$|(?=\)))(?!\s*[=])")
+    # unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|(?:\*\*))?[0-9]+)?)\b(?!\s*[=])")
     # unit_percent = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*)(?![eE][^a-zA-Z])\s*(%\)*)(?!\s*[0-9])" )
     percent_re = re.compile(r"%(?!\s*\d)")
     # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))" )
     in_re = re.compile(r"([a-zA-Z]\d*\)*)\s+in\s+(?=[(a-zA-Z]+)")
     money_re = re.compile(r"\$([0-9.]+)\b")
-    money2_re = re.compile(r"(( in)|( to))\s+\$")
+    money_to_re = re.compile(r" to\s+\$")
     to_re = re.compile(r"\s+to\s+")
     of_re = re.compile(r"%\s+of\s+")
     factorial_re = re.compile(r"(\d+)\s*!")
@@ -198,6 +199,19 @@ class BeeParser():
         while match := self.factorial_re.search(text):
             text = text[:match.start()] + f'factorial({match.group(1)})' + text[match.end():]
 
+        # preprocess vars/constants to make them work with units
+        # print("BEFORE:",text)
+        text = self.names_re.sub(self._replacer, text)
+        # print("     >:",text)
+
+        # handle money, $ prefix to USD suffix
+        while match := self.money_re.search(text):
+            text = text[:match.start()] + f'{match.group(1)} USD' + text[match.end():]
+            # print("money1:",text)
+        while match := self.money_to_re.search(text):
+            text = text[:match.start()] + f' to USD' + text[match.end():]
+            # print("money2:",text)
+
         # process 'in' conversion
         ## swap "to" and "in" for @@@ so it doesn't get confused during unit detection
         text = self.to_re.sub(' @@@ ', text)
@@ -208,16 +222,6 @@ class BeeParser():
         #     text = text[:match.start()] + match.group(1)+ ' @@@ ' + text[match.end():]
 # 
 
-        # preprocess vars/constants to make them work with units
-        # print("BEFORE:",text)
-        text = self.names_re.sub(self._replacer, text)
-        # print("     >:",text)
-
-        # handle money, $ prefix to USD suffix
-        while match := self.money_re.search(text):
-            text = text[:match.start()] + f'{match.group(1)} USD' + text[match.end():]
-        while match := self.money2_re.search(text):
-            text = text[:match.start()] + f'{match.group(1)} USD' + text[match.end():]
 
         # print('7>', text)
         text = text.translate(self.from_specials)
@@ -251,7 +255,7 @@ class BeeParser():
             print("Preprocessed text:", text)
             print(ast.dump(ast.parse(text), indent=2))
         
-        # print('evaluate:',text)
+        print('evaluate:',text)
         value = self.evaluate(text)
         return value
 
@@ -473,4 +477,7 @@ if __name__ == '__main__':
     # pad.append('1 m*A/hr')
     # print(pad.append('m/s in in/hr'))
     # print(pad.append('3 (m*g)/(s*g) + 3'))
-    print(pad.append('5!'))
+    print(pad.append("sin(90 deg)"))
+    print(pad.append("sin(90deg)"))
+    print(pad.append("sin(90°)"))
+    # print(pad.append('5!'))

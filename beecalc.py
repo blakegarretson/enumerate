@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                              QVBoxLayout, QWidget, QScrollBar)
 
 import beenotepad
+import time
 
 # import ctypes
 # ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('BTG.BeeCalc.BeeCalc.1')
@@ -193,7 +194,7 @@ class BeeInputSyntaxHighlighter(QSyntaxHighlighter):
         self.var_re_str = r'(?<!\w )\b({})\b'
         self.var_re = QRegularExpression(r'|'.join([self.var_re_str.format(w) for w in variables]))
         rule_pairs = [  # order matters below, more general go first and are overridden by more specific
-            (r'[a-zA-Z_Ωμ°]+[0-9⁰¹²³⁴⁵⁶⁷⁸⁹]*\b', settings.color_unit),  # units
+            (r'[a-zA-Z_Ωμ°]+[0-9⁰¹²³⁴⁵⁶⁷⁸⁹]*', settings.color_unit),  # units
             (r'\$', settings.color_unit),  # units
             (r'(?<=\d)\s*%', settings.color_unit),  # %
             (r'(?<=\d)\s*%\s*(?=\d)', settings.color_operator),  # %
@@ -772,7 +773,7 @@ class MainWindow(QMainWindow):
                 if out:
                     self.notepad.parser.vars['ans'] = out
             except unitclass.InconsistentUnitsError as err:
-                print('err2')
+                print('err2', time.asctime())
                 self.status_bar.showMessage(str(err), 3000)
                 errored = True
                 out_msg = '<Inconsistent units>'
@@ -780,7 +781,7 @@ class MainWindow(QMainWindow):
             except (ValueError, NameError, SyntaxError,
                     unitclass.UnavailableUnit, TypeError,
                     AttributeError, Exception) as err:
-                print('err1')
+                print('err1', time.asctime())
                 self.status_bar.showMessage(str(err), 3000)
                 errored = True
                 out_msg = '?'
