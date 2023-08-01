@@ -747,9 +747,11 @@ class MainWindow(QMainWindow):
         self.output.setReadOnly(False)
         all_output = []
         errored = False
+        any_errored = False
         widest_entry = 0
         for line in self.input.toPlainText().split('\n'):
             try:
+                
                 out = self.notepad.append(line)
                 if out not in ([], ):  # weed out empty lines
                     if (not isinstance(out, complex)) and math.isclose(out, 0, abs_tol=1e-15):
@@ -772,22 +774,46 @@ class MainWindow(QMainWindow):
                     outtext = ('', 0)
                 if out:
                     self.notepad.parser.vars['ans'] = out
+            except SyntaxError as err:
+                errstr, errored = str(err), True
+                print('err object:',errstr)
+                if errstr.startswith("'(' was never closed"):
+                    out_msg = "<Unclosed '('>"
+                    errstr = "'(' was never closed"
+                else:
+                    out_msg = errstr
+            except IndexError as err:
+                errstr, errored = str(err), True
+                out_msg = '?'
+                errstr = 'Invalid syntax'
+            except ZeroDivisionError as err:
+                errstr, errored = str(err), True
+                out_msg = '<Zero Division>'
+                errstr = "Divide by zero not possible"
             except unitclass.InconsistentUnitsError as err:
+                errstr, errored = str(err), True
                 print('err2', time.asctime())
-                self.status_bar.showMessage(str(err), 3000)
-                errored = True
                 out_msg = '<Inconsistent units>'
-                outtext = (out_msg, len(out_msg))
-            except (ValueError, NameError, SyntaxError,
-                    unitclass.UnavailableUnit, TypeError,
+            except unitclass.UnavailableUnit as err:
+                errstr, errored = str(err), True
+                print('err2', time.asctime())
+                out_msg = '<No unit/var>'
+                errstr = f"{errstr.split()[1]}: no such unit, variable, or constant"
+            except (ValueError, NameError, TypeError,
                     AttributeError, Exception) as err:
                 print('err1', time.asctime())
-                self.status_bar.showMessage(str(err), 3000)
-                errored = True
+                errstr, errored = str(err), True
                 out_msg = '?'
+                
+            if errored:
+                print('here1:',out_msg)
+                print('here2:',errstr)
+                any_errored = True
+                self.status_bar.showMessage(errstr, 3000)
                 outtext = (out_msg, len(out_msg))
             all_output.append(outtext)
-        if not errored:
+            errored = False
+        if not any_errored:
             self.status_bar.clearMessage()
 
         if self.settings.align:
