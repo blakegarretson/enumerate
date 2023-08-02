@@ -209,7 +209,7 @@ class BeeInputSyntaxHighlighter(QSyntaxHighlighter):
             (r'(?<=%)\s+of\s+', settings.color_conversion),  # conversion
             (r'@', settings.color_variable),  # variable name
             (r'\w+\s*(?==)', settings.color_variable),  # variable name
-            (self.var_re,settings.color_variable),  # variable name
+            (self.var_re, settings.color_variable),  # variable name
             (r'#.*$', settings.color_comment),  # comment
         ]
         for regexp, color in rule_pairs:
@@ -259,7 +259,6 @@ class BeeOutputSyntaxHighlighter(QSyntaxHighlighter):
                 self.setFormat(match.capturedStart(), match.capturedLength(), char_format)
 
 
-
 class MainWindow(QMainWindow):
     re_zeropoint = re.compile(r"[. ]|$")
     re_incomplete = re.compile(r'(.*?\s*)\b(\w+)$')
@@ -305,7 +304,8 @@ class MainWindow(QMainWindow):
 
         self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
         self.output.setWordWrapMode(QTextOption.WrapMode.NoWrap)
-        self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings, tuple(self.notepad.parser.vars.keys()), self.input.document())
+        self.syntax_highlighter_in = BeeInputSyntaxHighlighter(
+            self.settings, tuple(self.notepad.parser.vars.keys()), self.input.document())
         self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(self.settings, self.output.document())
 
         self.inputScrollbar = self.input.verticalScrollBar()
@@ -355,7 +355,6 @@ class MainWindow(QMainWindow):
         cursor.setPosition(len(input_text))
         self.input.setTextCursor(cursor)
 
-        
     def eventFilter(self, obj, event):
         if obj == self.input and event.type() == QEvent.Type.KeyPress:
             if event.key() == Qt.Key.Key_Tab:
@@ -374,7 +373,7 @@ class MainWindow(QMainWindow):
                 self.timer.start(20)
                 return super().eventFilter(obj, event)
         return super().eventFilter(obj, event)
-    
+
     def tabCompletion(self):
         position = self.input.textCursor().position()
         line = self.input.toPlainText()[:position].split('\n')[-1]
@@ -416,13 +415,15 @@ class MainWindow(QMainWindow):
         cursor = self.input.textCursor()
         cursor.setPosition(start+len(newword))
         self.input.setTextCursor(cursor)
+
     def simplify(self):
         cursor = self.input.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.EndOfLine)
         self.input.setTextCursor(cursor)
         self.input.insertPlainText("\nsimplify(@)")
         self.input.ensureCursorVisible()
-        #self.inputScrollbar.setValue(self.input.textCursor().position())
+        # self.inputScrollbar.setValue(self.input.textCursor().position())
+
     def expand(self):
         cursor = self.input.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.EndOfLine)
@@ -640,7 +641,7 @@ class MainWindow(QMainWindow):
         theme_group = QGroupBox("Theme")
         row1.addWidget(theme_group)
         theme_hbox1 = QHBoxLayout()
-        theme_hbox1.setContentsMargins(5,5,5,5)
+        theme_hbox1.setContentsMargins(5, 5, 5, 5)
         theme_group.setLayout(theme_hbox1)
 
         themeBox = QComboBox(self)
@@ -690,7 +691,6 @@ class MainWindow(QMainWindow):
         spacer2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         row2.addWidget(spacer2)
 
-
     def getDigitsLabel(self):
         if self.settings.num_fmt == 'Auto':
             return " Significant Digits: "
@@ -705,7 +705,8 @@ class MainWindow(QMainWindow):
 
     def changeTheme(self, theme):
         self.settings = settingsdict(self.settings | default_themes[theme])
-        self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings,tuple(self.notepad.parser.vars.keys()), self.input.document())
+        self.syntax_highlighter_in = BeeInputSyntaxHighlighter(
+            self.settings, tuple(self.notepad.parser.vars.keys()), self.input.document())
         self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(self.settings, self.output.document())
         self.updateStyle()
 
@@ -751,7 +752,7 @@ class MainWindow(QMainWindow):
         widest_entry = 0
         for line in self.input.toPlainText().split('\n'):
             try:
-                
+
                 out = self.notepad.append(line)
                 if out not in ([], ):  # weed out empty lines
                     if (not isinstance(out, complex)) and math.isclose(out, 0, abs_tol=1e-15):
@@ -776,7 +777,7 @@ class MainWindow(QMainWindow):
                     self.notepad.parser.vars['ans'] = out
             except SyntaxError as err:
                 errstr, errored = str(err), True
-                print('err object:',errstr)
+                print('err object:', errstr)
                 if errstr.startswith("'(' was never closed"):
                     out_msg = "<Unclosed '('>"
                     errstr = "'(' was never closed"
@@ -813,10 +814,10 @@ class MainWindow(QMainWindow):
                 print('err1', time.asctime())
                 errstr, errored = str(err), True
                 out_msg = '?'
-                
+
             if errored:
-                print('here1:',out_msg)
-                print('here2:',errstr)
+                print('here1:', out_msg)
+                print('here2:', errstr)
                 any_errored = True
                 self.status_bar.showMessage(errstr, 3000)
                 outtext = (out_msg, len(out_msg))
@@ -840,7 +841,7 @@ class MainWindow(QMainWindow):
         self.keepScrollSynced = True
         final_vars = tuple(self.notepad.parser.vars.keys())
         if initial_vars != final_vars:
-            self.syntax_highlighter_in.updateVars(self.notepad.parser.vars.keys())   
+            self.syntax_highlighter_in.updateVars(self.notepad.parser.vars.keys())
             self.syntax_highlighter_in.rehighlight()
         # self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings,tuple(self.notepad.parser.vars.keys()), self.input.document())
 

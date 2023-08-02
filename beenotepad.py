@@ -29,7 +29,8 @@ import unitclass
 class BeeParser():
     num_re = r"([.]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
     # num_re = r"((?:[-+])?[.,]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:(?:[+-])?\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
-    unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|\*\*)?[0-9]+)*)(?:\b|$|(?=\)))(?!\s*[=])")
+    unit_re = re.compile(
+        r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|\*\*)?[0-9]+)*)(?:\b|$|(?=\)))(?!\s*[=])")
     # unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|(?:\*\*))?[0-9]+)?)\b(?!\s*[=])")
     # unit_percent = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*)(?![eE][^a-zA-Z])\s*(%\)*)(?!\s*[0-9])" )
     percent_re = re.compile(r"%(?!\s*\d)")
@@ -141,8 +142,8 @@ class BeeParser():
             'min': min,
             'pow': pow,
             'round': round,
-            'expand':self._expand,
-            'simplify':self._simplify,
+            'expand': self._expand,
+            'simplify': self._simplify,
         }
 
         self.angle_funcs = ['cos', 'sin', 'tan']
@@ -157,6 +158,7 @@ class BeeParser():
             return f'({repl})'
         else:
             return match.group()  # no replacement
+
     def _expand(self, value):
         if isinstance(value, Unit):
             return value.expand()
@@ -168,8 +170,6 @@ class BeeParser():
             return value.simplify()
         else:  # left side was not a unit
             return Unit(value).simplify()
-
-
 
     def parse(self, text, debug=False):
         """Preprocess input string before parsing
@@ -193,7 +193,7 @@ class BeeParser():
         if match := self.of_re.search(text):
             text = '((' + text[:match.start()] + \
                 f')/100)*' + text[match.end():]
-            
+
         text = self.percent_re.sub('pct', text)
 
         while match := self.factorial_re.search(text):
@@ -213,15 +213,14 @@ class BeeParser():
             # print("money2:",text)
 
         # process 'in' conversion
-        ## swap "to" and "in" for @@@ so it doesn't get confused during unit detection
+        # swap "to" and "in" for @@@ so it doesn't get confused during unit detection
         text = self.to_re.sub(' @@@ ', text)
         # text = self.in_re.sub('@@@', text)
         # while match := self.to_re.search(text):
         #     text = text[:match.start()] + '@@@' + text[match.end():]
         # while match := self.in_re.search(text):
         #     text = text[:match.start()] + match.group(1)+ ' @@@ ' + text[match.end():]
-# 
-
+#
 
         # print('7>', text)
         text = text.translate(self.from_specials)
@@ -245,17 +244,17 @@ class BeeParser():
         for key, val in unit_replacements.items():
             text = text.replace(key, val)
         # print('8>', text)
-        
+
         # Restore the to placeholder for the in operator
-        text = text.replace('@@@','in ')
+        text = text.replace('@@@', 'in ')
         # implied multiplication
         text = text.replace(")Unit('", ")*Unit('")
 
         if debug:
             print("Preprocessed text:", text)
             print(ast.dump(ast.parse(text), indent=2))
-        
-        print('evaluate:',text)
+
+        print('evaluate:', text)
         value = self.evaluate(text)
         return value
 
@@ -296,7 +295,7 @@ class BeeParser():
         elif isinstance(node, ast.Assign):
             value = self.evaluate(node.value)
             for target in node.targets:
-                self.vars[target.id] = value # type: ignore
+                self.vars[target.id] = value  # type: ignore
             return value
 
         elif isinstance(node, ast.Compare):
@@ -305,7 +304,7 @@ class BeeParser():
 
             op = node.ops[0]
             try:
-                return self.operations[type(op)](left, right) # type: ignore
+                return self.operations[type(op)](left, right)  # type: ignore
             except KeyError:
                 raise ValueError(f"Bad Operator: {op.__class__.__name__}")
 
@@ -320,17 +319,17 @@ class BeeParser():
                 if any([var, const]):
                     return (const or var) * self.evaluate(node.args[0])
 
-            func = node.func.id # type: ignore
+            func = node.func.id  # type: ignore
 
             if func == 'Unit':
                 if len(node.args) == 1:
-                    return Unit(node.args[0].value) # type: ignore
+                    return Unit(node.args[0].value)  # type: ignore
                 elif len(node.args) == 2:
                     return Unit(self.evaluate(node.args[0]),
-                                node.args[1].value) # type: ignore
+                                node.args[1].value)  # type: ignore
                 else:
                     return Unit(self.evaluate(node.args[0]),
-                                node.args[1].value, node.args[2].value) # type: ignore
+                                node.args[1].value, node.args[2].value)  # type: ignore
                     # return Unit(node.args[0].value, node.args[1].value)
 
             args = [self.evaluate(arg) for arg in node.args]
