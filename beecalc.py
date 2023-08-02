@@ -831,11 +831,13 @@ class MainWindow(QMainWindow):
         else:
             all_output = [t for t, n in all_output]
         self.output.setText("\n".join(all_output))
+        orig_cursor = self.output.textCursor()
         self.output.selectAll()
         self.output.setAlignment(Qt.AlignmentFlag.AlignRight)
-        cursor = self.output.textCursor()
-        cursor.clearSelection()
-        self.output.setTextCursor(cursor)
+        # cursor = self.output.textCursor()
+        # cursor.clearSelection()
+        # self.output.setTextCursor(cursor)
+        self.output.setTextCursor(orig_cursor)
         self.output.setReadOnly(True)
         self.outputScrollbar.setValue(self.inputScrollbar.value())
         self.keepScrollSynced = True
