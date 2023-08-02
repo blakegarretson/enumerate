@@ -57,7 +57,7 @@ default_themes = {
         color_variable="#79dce8",
         color_unit="#ab9df3",
         color_conversion="#fd9967",
-        color_error='#fe2020',
+        color_error='#ff6289',
     ),
     'Muted': dict(
         theme='Muted',
@@ -70,7 +70,7 @@ default_themes = {
         color_variable='#7fbcb3',
         color_unit='#d799b6',
         color_conversion='#85928a',
-        color_error='#fe2020',
+        color_error='#e67e81',
     ),
     'Solarized': dict(
         theme='Solarized',
@@ -83,7 +83,7 @@ default_themes = {
         color_variable='#859900',
         color_unit='#6c71c4',
         color_conversion='#cb4b16',
-        color_error='#fe2020',
+        color_error='#dc322f',
     ),
     'Light': dict(
         theme='Light',
@@ -795,12 +795,20 @@ class MainWindow(QMainWindow):
                 errstr, errored = str(err), True
                 print('err2', time.asctime())
                 out_msg = '<Inconsistent units>'
+            except ValueError as err:
+                errstr, errored = str(err), True
+                if errstr.startswith("Bad Func"):
+                    out_msg = '<Bad function>'
+                    errstr = f"{errstr.split()[2]}: no such function"
+                else:
+                    out_msg = '?'
+                    errstr = errstr
             except unitclass.UnavailableUnit as err:
                 errstr, errored = str(err), True
                 print('err2', time.asctime())
                 out_msg = '<No unit/var>'
                 errstr = f"{errstr.split()[1]}: no such unit, variable, or constant"
-            except (ValueError, NameError, TypeError,
+            except (NameError, TypeError,
                     AttributeError, Exception) as err:
                 print('err1', time.asctime())
                 errstr, errored = str(err), True
