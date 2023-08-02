@@ -348,12 +348,13 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(container)
 
-        # self.input.textChanged.connect(self.processNotepad)
         self.input.cursorPositionChanged.connect(self.processNotepad)
         self.input.setText(input_text)
         cursor = self.input.textCursor()
         cursor.setPosition(len(input_text))
         self.input.setTextCursor(cursor)
+        # self.input.textChanged.connect(self.processNotepad)
+        # self.processNotepad()
 
     def eventFilter(self, obj, event):
         if obj == self.input and event.type() == QEvent.Type.KeyPress:
@@ -367,12 +368,18 @@ class MainWindow(QMainWindow):
                 if self.tabPopupVisable:
                     self.tabPopupVisable = False
                     return True
+                # self.delayedProcessNotepad()
             elif event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
-                self.timer = QTimer()
-                self.timer.timeout.connect(self.processNotepad)
-                self.timer.start(20)
-                return super().eventFilter(obj, event)
+                self.delayedProcessNotepad()
+            # else:
+            #     self.delayedProcessNotepad()
         return super().eventFilter(obj, event)
+
+    def delayedProcessNotepad(self, t=5):
+        self.timer = QTimer()
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.processNotepad)
+        self.timer.start(t)
 
     def tabCompletion(self):
         position = self.input.textCursor().position()
@@ -742,6 +749,10 @@ class MainWindow(QMainWindow):
         self.updateFont()
 
     def processNotepad(self):
+        # try:
+        #     self.input.textChanged.disconnect()
+        # except TypeError:
+        #     pass
         self.keepScrollSynced = False
         initial_vars = tuple(self.notepad.parser.vars.keys())
         self.notepad.clear()
@@ -846,6 +857,8 @@ class MainWindow(QMainWindow):
             self.syntax_highlighter_in.updateVars(self.notepad.parser.vars.keys())
             self.syntax_highlighter_in.rehighlight()
         # self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings,tuple(self.notepad.parser.vars.keys()), self.input.document())
+        # self.input.textChanged.connect(self.processNotepad)
+        print('processed', time.asctime())
 
 
 app = QApplication(sys.argv)
