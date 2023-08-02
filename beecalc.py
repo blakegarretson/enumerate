@@ -370,6 +370,9 @@ class MainWindow(QMainWindow):
                     return True
                 # self.delayedProcessNotepad()
             elif event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
+                # this is necessary because deleting blocks of text may not change the cursor 
+                # position so processNotepad is not called. The delay here is to wait until the 
+                # return is called and the keypress is executed before running processNotepad
                 self.delayedProcessNotepad()
             # else:
             #     self.delayedProcessNotepad()
