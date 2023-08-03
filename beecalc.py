@@ -202,7 +202,7 @@ class BeeInputSyntaxHighlighter(QSyntaxHighlighter):
             (r'(?<=\d)\s*%', settings.color_unit),  # %
             (r'(?<=\d)\s*%\s*(?=\d)', settings.color_operator),  # %
             ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.color_function),  # function call
-            (r'[+-/*=(),]', settings.color_operator),  # operator
+            (r'[+-/*=(),^]', settings.color_operator),  # operator
             (r'\?', settings.color_error),  # ERROR
             ('|'.join([rf'(\b{i}\b)' for i in constant_list]), settings.color_constant),  # constant
             (r"\b\d+\.*\d*([Ee][-+]?)?\d?", settings.color_text),  # numbers
@@ -241,7 +241,7 @@ class BeeOutputSyntaxHighlighter(QSyntaxHighlighter):
 
         self.rules = []
         rule_pairs = [  # order matters below, more general go first and are overridden by more specific
-            (r'[a-zA-Z_Ωμ°%]+[0-9⁰¹²³⁴⁵⁶⁷⁸⁹]*\b', settings.color_unit),  # units
+            (r'[a-zA-Z_Ωμ°%]+[0-9⁰¹²³⁴⁵⁶⁷⁸⁹]*', settings.color_unit),  # units
             (r'%', settings.color_unit),  # %
             (r'\$', settings.color_unit),  # units
             (r'[+-/*=(),]', settings.color_operator),  # operator
