@@ -278,7 +278,7 @@ class MainWindow(QMainWindow):
         self.updateStyle()  # apply stylesheets for widget defaults
         self.status_bar = QStatusBar(self)
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Welcome to BeeCalc!", 3000)
+        # self.status_bar.showMessage("Welcome to BeeCalc!", 3000)
 
         self.resize(500, 500)
         self.setWindowTitle("BeeCalc")
@@ -308,6 +308,7 @@ class MainWindow(QMainWindow):
 
         self.input.setWordWrapMode(QTextOption.WrapMode.NoWrap)
         self.output.setWordWrapMode(QTextOption.WrapMode.NoWrap)
+        self.input.setAcceptRichText(False)
         self.syntax_highlighter_in = BeeInputSyntaxHighlighter(
             self.settings, tuple(self.notepad.parser.vars.keys()), self.input.document())
         self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(self.settings, self.output.document())
