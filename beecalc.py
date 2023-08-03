@@ -266,6 +266,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, settings, current, notepads):
         super().__init__()
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
 
         self.setUnifiedTitleAndToolBarOnMac(True)
         self.settings = settings
@@ -370,8 +371,8 @@ class MainWindow(QMainWindow):
                     return True
                 # self.delayedProcessNotepad()
             elif event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
-                # this is necessary because deleting blocks of text may not change the cursor 
-                # position so processNotepad is not called. The delay here is to wait until the 
+                # this is necessary because deleting blocks of text may not change the cursor
+                # position so processNotepad is not called. The delay here is to wait until the
                 # return is called and the keypress is executed before running processNotepad
                 self.delayedProcessNotepad()
             # else:
@@ -545,6 +546,11 @@ class MainWindow(QMainWindow):
         self.notepadAddButton.triggered.connect(self.addNotepad)
         self.notepadAddButton.setStatusTip("Creat new notepad")
 
+        self.stayOnTopButton = QAction('top', self)
+        # self.stayOnTopButton = QAction('📌', self)
+        self.stayOnTopButton.triggered.connect(self.toggleStayOnTop)
+        self.stayOnTopButton.setStatusTip("Window stays on top")
+
         self.notepadDeleteButton = QAction('×', self)
         self.notepadDeleteButton.triggered.connect(self.deleteNotepad)
         self.notepadDeleteButton.setStatusTip("Delete current notepad")
@@ -568,7 +574,12 @@ class MainWindow(QMainWindow):
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.menubar.addWidget(spacer)
+        self.menubar.addAction(self.stayOnTopButton)
         self.menubar.addAction(self.notepadDeleteButton)
+
+    def toggleStayOnTop(self):
+        pass
+        # if self.windowFlags() .Qt.WindowType.WindowStaysOnTopHint
 
     def changeAlignment(self):
         self.settings.align = self.alignment.isChecked()
