@@ -182,7 +182,10 @@ function_list = sorted(list(parser.functions.keys()))
 constant_list = list(parser.constants.keys())
 unit_list = []
 for name, unit in unitclass._units.items():
-    unit_list.extend([name] + (unit['aliases'] if unit['aliases'] else []))
+    # if name not in unit_list:
+    #     unit_list.extend([name] + (unit['aliases'] if unit['aliases'] else []))
+    unit_variations = [name] + (unit['aliases'] if unit['aliases'] else [])
+    unit_list.extend([x for x in unit_variations if x not in unit_list])
 unit_list.sort()
 
 
