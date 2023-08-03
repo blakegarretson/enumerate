@@ -266,7 +266,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, settings, current, notepads):
         super().__init__()
-        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+        # self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, False)
 
         self.setUnifiedTitleAndToolBarOnMac(True)
         self.settings = settings
@@ -544,9 +544,10 @@ class MainWindow(QMainWindow):
         self.notepadBox.hide()
         self.notepadAddButton = QAction('+', self)
         self.notepadAddButton.triggered.connect(self.addNotepad)
-        self.notepadAddButton.setStatusTip("Creat new notepad")
+        self.notepadAddButton.setStatusTip("Create new notepad")
 
         self.stayOnTopButton = QAction('top', self)
+        self.stayOnTopButton.setCheckable(True)
         # self.stayOnTopButton = QAction('📌', self)
         self.stayOnTopButton.triggered.connect(self.toggleStayOnTop)
         self.stayOnTopButton.setStatusTip("Window stays on top")
@@ -577,9 +578,9 @@ class MainWindow(QMainWindow):
         self.menubar.addAction(self.stayOnTopButton)
         self.menubar.addAction(self.notepadDeleteButton)
 
-    def toggleStayOnTop(self):
-        pass
-        # if self.windowFlags() .Qt.WindowType.WindowStaysOnTopHint
+    def toggleStayOnTop(self):       
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowStaysOnTopHint)
+        self.show()
 
     def changeAlignment(self):
         self.settings.align = self.alignment.isChecked()
