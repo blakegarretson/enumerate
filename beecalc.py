@@ -12,9 +12,9 @@ from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QTextCharFormat, QTextOption, QTextCursor)
 from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                              QDialog, QDialogButtonBox, QFontComboBox, QFrame,
-                             QGroupBox, QHBoxLayout, QLabel, QLineEdit,
-                             QMainWindow, QMessageBox, QPushButton,
-                             QRadioButton, QSizePolicy, QSpinBox, QSplitter,
+                             QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTableWidgetItem,
+                             QMainWindow, QMessageBox, QPushButton, QTableWidget,
+                             QRadioButton, QSizePolicy, QSpinBox, QSplitter,QHeaderView,
                              QStatusBar, QStyle, QTextEdit, QToolBar,
                              QVBoxLayout, QWidget, QScrollBar)
 
@@ -278,6 +278,9 @@ class MainWindow(QMainWindow):
         self.updateStyle()  # apply stylesheets for widget defaults
         self.status_bar = QStatusBar(self)
         self.setStatusBar(self.status_bar)
+        self.statslabel = QLabel("n=3 sum=324 avg=43.43")
+        self.statslabel.setStyleSheet(f"color:#65666b;")
+        self.status_bar.addPermanentWidget(self.statslabel)
         # self.status_bar.showMessage("Welcome to BeeCalc!", 3000)
 
         self.resize(500, 500)
@@ -582,7 +585,7 @@ class MainWindow(QMainWindow):
         self.menubar.addAction(self.stayOnTopButton)
         self.menubar.addAction(self.notepadDeleteButton)
 
-    def toggleStayOnTop(self):       
+    def toggleStayOnTop(self):
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowStaysOnTopHint)
         self.show()
 
@@ -780,6 +783,7 @@ class MainWindow(QMainWindow):
         errored = False
         any_errored = False
         widest_entry = 0
+        total = []
         for line in self.input.toPlainText().split('\n'):
             try:
 
@@ -851,6 +855,11 @@ class MainWindow(QMainWindow):
                 any_errored = True
                 self.status_bar.showMessage(errstr, 3000)
                 outtext = (out_msg, len(out_msg))
+            # total.append(float(outtext[0]))
+            try:
+                total.append(float(outtext[0]))
+            except:
+                pass
             all_output.append(outtext)
             errored = False
         if not any_errored:
@@ -877,6 +886,13 @@ class MainWindow(QMainWindow):
             self.syntax_highlighter_in.rehighlight()
         # self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings,tuple(self.notepad.parser.vars.keys()), self.input.document())
         # self.input.textChanged.connect(self.processNotepad)
+        n=len(total)
+        sum_=sum(total)
+        if n:
+            avg = f'{sum_/n:g}'
+        else:
+            avg = 'N/A'
+        self.statslabel.setText(f'n={n} sum={sum_:g} avg={avg}')
         print('processed', time.asctime())
 
 
