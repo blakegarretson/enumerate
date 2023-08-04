@@ -28,11 +28,8 @@ import unitclass
 
 class BeeParser():
     num_re = r"([.]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
-    # num_re = r"((?:[-+])?[.,]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:(?:[+-])?\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
-    unit_re = re.compile(
-        r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*(?![eE][-+\d])([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|\*\*)?[0-9]+)*)(?:\b|$|(?=\)))(?!\s*[=])")
-    # unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|(?:\*\*))?[0-9]+)?)\b(?!\s*[=])")
-    # unit_percent = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])\(*\s*[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?\s*\)*)(?![eE][^a-zA-Z])\s*(%\)*)(?!\s*[0-9])" )
+    unit_re = re.compile(r"(?<![a-zA-Z])(" + num_re + r")?\s*(?![eE][-+\d])([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|\*\*)?[0-9]+)*)(?:\b|$|(?=\)))(?!\(|\s*[=])")
+    # unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*(?![eE][-+\d])([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|\*\*)?[0-9]+)*)(?:\b|$|(?=\)))(?!\s*[=])")
     percent_re = re.compile(r"%(?!\s*\d)")
     # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))" )
     in_re = re.compile(r"([a-zA-Z]\d*\)*)\s+in\s+(?=[(a-zA-Z]+)")
@@ -131,13 +128,10 @@ class BeeParser():
             'degrees': math.degrees,
             'radians': math.radians,
             'abs': abs,
-            'bin': bin,
             'complex': complex,
             'divmod': divmod,
             'float': float,
             'int': int,
-            'hex': hex,
-            'oct': oct,
             'max': max,
             'min': min,
             'pow': pow,
@@ -480,4 +474,4 @@ if __name__ == '__main__':
     # print(pad.append("sin(90deg)"))
     # print(pad.append("sin(90°)"))
     # print(pad.append('5!'))
-    print(pad.append('4e4'))
+    print(pad.append('arctan2(3,3)'))
