@@ -92,6 +92,7 @@ class BeeParser():
             # 'cbrt': math.cbrt, # py 3.11
             'ceil': math.ceil,
             'comb': math.comb,
+            'nCr': math.comb,
             'cos': math.cos,
             'cosh': math.cosh,
             'dist': math.dist,
@@ -111,7 +112,9 @@ class BeeParser():
             'lcm': math.lcm,
             'ldexp': math.ldexp,
             'lgamma': math.lgamma,
-            'log': math.log,
+            'log': math.log10,
+            'logx': math.log,
+            'ln': math.log,
             'log10': math.log10,
             'log1p': math.log1p,
             'log2': math.log2,
@@ -154,12 +157,14 @@ class BeeParser():
             return match.group()  # no replacement
 
     def _expand(self, value):
+        """Expand a unit to its fundamental units. e.g. N -> kg*m/s2"""
         if isinstance(value, Unit):
             return value.expand()
         else:  # left side was not a unit
             return Unit(value).expand()
 
     def _simplify(self, value):
+        """Simplify a complex unit to the simplest form. e.g. kg*m/s2 -> N"""
         if isinstance(value, Unit):
             return value.simplify()
         else:  # left side was not a unit
@@ -474,4 +479,4 @@ if __name__ == '__main__':
     # print(pad.append("sin(90deg)"))
     # print(pad.append("sin(90°)"))
     # print(pad.append('5!'))
-    print(pad.append('arctan2(3,3)'))
+    print(pad.append('atan2(3,3)'))

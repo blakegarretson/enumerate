@@ -10,7 +10,7 @@ from PyQt6.QtCore import (QCoreApplication, QEvent, QMargins, QPoint,
 from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
                          QTextCharFormat, QTextOption, QTextCursor)
-from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
+from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,QToolTip,
                              QDialog, QDialogButtonBox, QFontComboBox, QFrame,
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTableWidgetItem,
                              QMainWindow, QMessageBox, QPushButton, QTableWidget,
@@ -265,6 +265,7 @@ class BeeOutputSyntaxHighlighter(QSyntaxHighlighter):
 class MainWindow(QMainWindow):
     re_zeropoint = re.compile(r"[. ]|$")
     re_incomplete = re.compile(r'(.*?\s*)\b(\w+)$')
+    re_functionname = re.compile(r'\b(\w+)\($')
     # re_incomplete = re.compile(r'\b\w+$')
 
     def __init__(self, settings, current, notepads):
@@ -422,6 +423,10 @@ class MainWindow(QMainWindow):
             tabpopup.activated.connect(self.tabReplaceWord)
             self.tabPopupVisable = True
             tabpopup.showPopup()
+        elif result := self.re_functionname.search(line):
+            word = result.groups()[0]
+            if word in self.notepad.parser.functions:
+                QToolTip.showText(self.pos()+ self.status_bar.pos(), self.notepad.parser.functions[word].__doc__)
 
     def tabReplaceWord(self):
         newword = self.sender().currentText()  # type: ignore
