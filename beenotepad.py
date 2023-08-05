@@ -89,7 +89,7 @@ class BeeParser():
             'atan': math.atan,
             'atan2': math.atan2,
             'atanh': math.atanh,
-            # 'cbrt': math.cbrt, # py 3.11
+            'cbrt': math.cbrt, # py 3.11
             'ceil': math.ceil,
             'comb': math.comb,
             'nCr': math.comb,
@@ -99,7 +99,7 @@ class BeeParser():
             'erf': math.erf,
             'erfc': math.erfc,
             'exp': math.exp,
-            # 'exp2': math.exp2, # py 3.11
+            'exp2': math.exp2, # py 3.11
             'expm1': math.expm1,
             'fabs': math.fabs,
             'factorial': math.factorial,
@@ -137,6 +137,7 @@ class BeeParser():
             'int': int,
             'max': max,
             'min': min,
+            'sum': sum,
             'pow': pow,
             'round': round,
             'expand': self._expand,
@@ -271,8 +272,11 @@ class BeeParser():
                 values = values[0]
             return values
 
-        elif isinstance(node, (list, tuple)):
-            return [self.evaluate(child_node) for child_node in node]
+        elif isinstance(node, (list, tuple, ast.List, ast.Tuple)):
+            print("found seq")
+            print(node)
+            print(ast.literal_eval(node))
+            return [self.evaluate(str(child_node)) for child_node in ast.literal_eval(node)]
 
         elif isinstance(node, ast.Expr):
             return self.evaluate(node.value)
@@ -355,6 +359,9 @@ class BeeParser():
         elif isinstance(node, ast.Constant):
             return node.value
         else:
+            print(type(node))
+            print(type(node)==list)
+            print(type(node)==tuple)
             raise TypeError(f"Unsupported operation: {node.__class__.__name__}")
 
     def convert(self, from_unit, to_unit):
@@ -479,4 +486,4 @@ if __name__ == '__main__':
     # print(pad.append("sin(90deg)"))
     # print(pad.append("sin(90°)"))
     # print(pad.append('5!'))
-    print(pad.append('atan2(3,3)'))
+    print(pad.append('[1,2]',True))
