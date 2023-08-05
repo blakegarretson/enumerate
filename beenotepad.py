@@ -24,11 +24,14 @@ import operator
 import re
 from unitclass import Unit
 import unitclass
+from fractions import Fraction
+from decimal import Decimal
 
 
 class BeeParser():
     num_re = r"([.]\b(?:\d+)(?:[Ee]([+-])?(?:\d+)?)?\b)|(?:\b(?:\d+)(?:[.,]?(?:\d+))?(?:[Ee](?:[+-])?(?:\d+)?)?)"
-    unit_re = re.compile(r"(?<![a-zA-Z])(" + num_re + r")?\s*(?![eE][-+\d])([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|\*\*)?[0-9]+)*)(?:\b|$|(?=\)))(?!\(|\s*[=])")
+    unit_re = re.compile(
+        r"(?<![a-zA-Z])(" + num_re + r")?\s*(?![eE][-+\d])([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|\*\*)?[0-9]+)*)(?:\b|$|(?=\)))(?!\(|\s*[=])")
     # unit_re = re.compile(r"(?<!Unit\(')(?<![a-zA-Z])(" + num_re + r")?\s*(?![eE][-+\d])([a-zA-Z_Ωμ°]+(?![(])(?:(?:\^|\*\*)?[0-9]+)*)(?:\b|$|(?=\)))(?!\s*[=])")
     percent_re = re.compile(r"%(?!\s*\d)")
     # unit_re = re.compile(r"(?<!Unit\(')((?<![a-zA-Z])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)(?![eE][^a-zA-Z])\s*((?:[a-zA-Z_Ωμ°]+(?:\^|\*\*)*[0-9]*)|(?:%(?!\s+-*\+*[0-9])))" )
@@ -45,6 +48,8 @@ class BeeParser():
     extra_spaces_re = re.compile(r"\s\s+")
     eliminate_spaces_re = re.compile(r" (?=\))|(?<=\() | (?=[+\-*/^])|(?<=[+\-*/^]) ")
     double_in_re = re.compile(r" in in\s+(?!$)")
+    # re_frac = re.compile(r'frac\(\s*('+num_re+r')\s*\)')
+    re_frac = re.compile(r'frac\(\s*((?:-|\+)*\d*\.*\d+[eE]*(?:-|\+)*\d*)\s*\)')
 
     to_specials = str.maketrans("0123456789*", "⁰¹²³⁴⁵⁶⁷⁸⁹·")
     from_specials = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⋅·×", "0123456789***")
@@ -89,7 +94,7 @@ class BeeParser():
             'atan': math.atan,
             'atan2': math.atan2,
             'atanh': math.atanh,
-            'cbrt': math.cbrt, # py 3.11
+            'cbrt': math.cbrt,  # py 3.11
             'ceil': math.ceil,
             'comb': math.comb,
             'nCr': math.comb,
@@ -99,7 +104,7 @@ class BeeParser():
             'erf': math.erf,
             'erfc': math.erfc,
             'exp': math.exp,
-            'exp2': math.exp2, # py 3.11
+            'exp2': math.exp2,  # py 3.11
             'expm1': math.expm1,
             'fabs': math.fabs,
             'factorial': math.factorial,
@@ -143,6 +148,7 @@ class BeeParser():
             'expand': self._expand,
             'simplify': self._simplify,
             'root': self._root,
+            'frac': self._frac,
         }
 
         self.angle_funcs = ['cos', 'sin', 'tan']
@@ -158,7 +164,15 @@ class BeeParser():
         else:
             return match.group()  # no replacement
 
-    def _root(self,x,y):
+    def _frac(self, x):
+        """Convert value to closest fractional value"""
+        try:
+            result = Fraction(Decimal(x))
+        except:
+            result = Fraction(x)
+        return result
+
+    def _root(self, x, y):
         """Arbitrary root function: y root of x. \nSame as x^(1/y)"""
         return x**(1/y)
 
@@ -254,6 +268,9 @@ class BeeParser():
         text = text.replace('@@@', 'in ')
         # implied multiplication
         text = text.replace(")Unit('", ")*Unit('")
+
+        # text = re_frac
+        text = self.re_frac.sub(r'frac("\1")', text)
 
         if debug:
             print("Preprocessed text:", text)
@@ -365,8 +382,8 @@ class BeeParser():
             return node.value
         else:
             print(type(node))
-            print(type(node)==list)
-            print(type(node)==tuple)
+            print(type(node) == list)
+            print(type(node) == tuple)
             raise TypeError(f"Unsupported operation: {node.__class__.__name__}")
 
     def convert(self, from_unit, to_unit):
@@ -491,4 +508,5 @@ if __name__ == '__main__':
     # print(pad.append("sin(90deg)"))
     # print(pad.append("sin(90°)"))
     # print(pad.append('5!'))
-    print(pad.append('[1,2]',True))
+    print(pad.append('frac(0.1)', True))
+    print(pad.append('frac(-2e-2)', True))

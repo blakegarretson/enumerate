@@ -864,7 +864,13 @@ class MainWindow(QMainWindow):
             try:
                 total.append(float(outtext[0]))
             except:
-                pass
+                try: # fraction?
+                    if '/' in outtext[0]:
+                        j,k = outtext[0].split('/')
+                        val = float(j)/float(k)
+                        total.append(val)    
+                except:
+                    pass       
             all_output.append(outtext)
             errored = False
         if not any_errored:

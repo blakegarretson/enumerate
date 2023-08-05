@@ -1,4 +1,10 @@
 # To Do
+
+- Fractions
+  - frac(), dec() funcs? 
+  - Or handle implied fractions with spaces?
 - list funcs, units, etc.
   - command or browser?
-- Stats panel, sum/min/max/stdev, etc
+- Econ functions?
+- Interpolation?
+- Quadratic EQ?
