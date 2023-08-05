@@ -142,6 +142,7 @@ class BeeParser():
             'round': round,
             'expand': self._expand,
             'simplify': self._simplify,
+            'root': self._root,
         }
 
         self.angle_funcs = ['cos', 'sin', 'tan']
@@ -156,6 +157,10 @@ class BeeParser():
             return f'({repl})'
         else:
             return match.group()  # no replacement
+
+    def _root(self,x,y):
+        """Arbitrary root function: y root of x. \nSame as x^(1/y)"""
+        return x**(1/y)
 
     def _expand(self, value):
         """Expand a unit to its fundamental units. e.g. N -> kg*m/s2"""
