@@ -165,7 +165,13 @@ class BeeParser():
             return match.group()  # no replacement
 
     def _frac(self, x):
-        """Convert value to closest fractional value"""
+        """Convert given value to closest fraction"""
+        if isinstance(x, Unit): # strip off unit
+            # unit_str = x.unit
+            x = x.value
+        # else:
+        #     unit_str = None
+
         try:
             result = Fraction(Decimal(x))
         except:
