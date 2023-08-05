@@ -3,18 +3,18 @@ import math
 import re
 import sys
 from pathlib import Path
-
+from fractions import Fraction
 import unitclass
 from PyQt6.QtCore import (QCoreApplication, QEvent, QMargins, QPoint,
                           QRegularExpression, QSize, Qt, QTimer)
 from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
                          QTextCharFormat, QTextOption, QTextCursor)
-from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,QToolTip,
+from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QToolTip,
                              QDialog, QDialogButtonBox, QFontComboBox, QFrame,
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTableWidgetItem,
                              QMainWindow, QMessageBox, QPushButton, QTableWidget,
-                             QRadioButton, QSizePolicy, QSpinBox, QSplitter,QHeaderView,
+                             QRadioButton, QSizePolicy, QSpinBox, QSplitter, QHeaderView,
                              QStatusBar, QStyle, QTextEdit, QToolBar,
                              QVBoxLayout, QWidget, QScrollBar)
 
@@ -426,7 +426,7 @@ class MainWindow(QMainWindow):
         elif result := self.re_functionname.search(line):
             word = result.groups()[0]
             if word in self.notepad.parser.functions:
-                QToolTip.showText(self.pos()+ self.status_bar.pos(), self.notepad.parser.functions[word].__doc__)
+                QToolTip.showText(self.pos() + self.status_bar.pos(), self.notepad.parser.functions[word].__doc__)
 
     def tabReplaceWord(self):
         newword = self.sender().currentText()  # type: ignore
@@ -803,13 +803,22 @@ class MainWindow(QMainWindow):
                         if zeropt > widest_entry:
                             widest_entry = zeropt
                         outtext = (text, zeropt)
-
+                    elif isinstance(out, Fraction):
+                        text = str(out)
+                        zeropt = len(text) - self.re_zeropoint.search(text).start()
+                        if zeropt > widest_entry:
+                            widest_entry = zeropt
+                        outtext = (text, zeropt)
                     else:
                         text = f'{out}'
                         zeropt = len(text) - self.re_zeropoint.search(text).start()
                         if zeropt > widest_entry:
                             widest_entry = zeropt
                         outtext = (text, zeropt)
+                    try:
+                        total.append(float(out))
+                    except:
+                        pass
                 else:
                     outtext = ('', 0)
                 if out:
@@ -861,16 +870,16 @@ class MainWindow(QMainWindow):
                 self.status_bar.showMessage(errstr, 3000)
                 outtext = (out_msg, len(out_msg))
             # total.append(float(outtext[0]))
-            try:
-                total.append(float(outtext[0]))
-            except:
-                try: # fraction?
-                    if '/' in outtext[0]:
-                        j,k = outtext[0].split('/')
-                        val = float(j)/float(k)
-                        total.append(val)    
-                except:
-                    pass       
+            # try:
+            #     total.append(float(outtext[0]))
+            # except:
+            #     try:  # fraction?
+            #         if '/' in outtext[0]:
+            #             j, k = outtext[0].split('/')
+            #             val = float(j)/float(k)
+            #             total.append(val)
+            #     except:
+            #         pass
             all_output.append(outtext)
             errored = False
         if not any_errored:
@@ -897,8 +906,8 @@ class MainWindow(QMainWindow):
             self.syntax_highlighter_in.rehighlight()
         # self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings,tuple(self.notepad.parser.vars.keys()), self.input.document())
         # self.input.textChanged.connect(self.processNotepad)
-        n=len(total)
-        sum_=sum(total)
+        n = len(total)
+        sum_ = sum(total)
         if n:
             avg = f'{sum_/n:g}'
         else:

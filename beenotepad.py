@@ -514,5 +514,4 @@ if __name__ == '__main__':
     # print(pad.append("sin(90deg)"))
     # print(pad.append("sin(90°)"))
     # print(pad.append('5!'))
-    print(pad.append('frac(0.1)', True))
-    print(pad.append('frac(-2e-2)', True))
+    print(pad.append('frac(0.125)', True))
