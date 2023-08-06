@@ -977,7 +977,7 @@ class MainWindow(QMainWindow):
 
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
-app.setWindowIcon(QIcon("beecalc.png"))
+app.setWindowIcon(QIcon("images/beecalc-icon.svg"))
 window = MainWindow(*initililize_config())
 window.show()
 app.exec()
