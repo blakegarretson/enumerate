@@ -1,3 +1,24 @@
+"""
+BeeCalc: Cross-platform notebook calculator with robust unit support
+
+    Copyright (C) 2023  Blake T. Garretson
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+"""
+
 import json
 import math
 import re
@@ -11,7 +32,7 @@ from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
                          QTextCharFormat, QTextOption, QTextCursor)
 from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QToolTip,
-                             QDialog, QDialogButtonBox, QFontComboBox, QFrame,
+                             QDialog, QDialogButtonBox, QFontComboBox, QFrame,QMenu,
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTableWidgetItem,
                              QMainWindow, QMessageBox, QPushButton, QTableWidget,
                              QRadioButton, QSizePolicy, QSpinBox, QSplitter, QHeaderView,
@@ -290,6 +311,12 @@ class MainWindow(QMainWindow):
         self.notepad = beenotepad.BeeNotepad()
         input_text = self.getNotepadText(self.current)
 
+        # self.topmenubar = self.menuBar()
+        # fileMenu = self.topmenubar.addMenu('&File')
+        # newAct = QAction('New', self)
+        # fileMenu.addAction(newAct)
+
+
         font_families = QFontDatabase.families()
         if settings.font not in font_families:
             for fontname in ['Consolas', 'Andale Mono', 'Courier New', 'Noto Sans Mono', 'Monospace', 'Courier']:
@@ -564,6 +591,10 @@ class MainWindow(QMainWindow):
         self.stayOnTopButton.triggered.connect(self.toggleStayOnTop)
         self.stayOnTopButton.setStatusTip("Window stays on top")
 
+        self.helpButton = QAction('?', self)
+        self.helpButton.triggered.connect(self.helpPopupMenu)
+        self.helpButton.setStatusTip("App Help & Info")
+
         self.notepadDeleteButton = QAction('×', self)
         self.notepadDeleteButton.triggered.connect(self.deleteNotepad)
         self.notepadDeleteButton.setStatusTip("Delete current notepad")
@@ -588,7 +619,46 @@ class MainWindow(QMainWindow):
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.menubar.addWidget(spacer)
         self.menubar.addAction(self.stayOnTopButton)
+        self.menubar.addAction(self.helpButton)
         self.menubar.addAction(self.notepadDeleteButton)
+
+    def helpPopupMenu(self, event):
+        # print(event)
+        # obj = self.sender()
+        cmenu = QMenu(self)
+        basicAct = cmenu.addAction("Basic Usage")
+        advAct = cmenu.addAction("Advanced Usage")
+        webAct = cmenu.addAction("BeeCalc Website")
+        aboutAct = cmenu.addAction("About")
+        aboutAct.triggered.connect(self.showAboutPopup)
+        # quitAct = cmenu.addAction("Quit")
+        action = cmenu.exec(self.cursor().pos())
+        # action = cmenu.exec(self.mapToGlobal(self.cursor().pos()))
+
+        # if action == quitAct:
+        #     QApplication.instance().quit()
+        return True
+
+    def showAboutPopup(self):
+        msg = QMessageBox(text="BeeCalc",parent=self)
+        
+        msg.setIconPixmap(QPixmap("images/beecalc-icon256.png"))
+        # msg.setIcon(QMessageBox.Icon.Information)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)#|
+                            #    QMessageBox.StandardButton.Cancel)
+        msg.setDefaultButton(QMessageBox.StandardButton.Ok)
+
+        msg.setDetailedText("Version 0.9.0\nProject Home: http://www.beecalc.com\nEmail comments to blake@beecalc.com\n\n"+
+                            "Copyright (C) 2023  Blake T. Garretson")
+
+        msg.setInformativeText("""This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+                               This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+                               You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.""")
+
+        ret = msg.exec()
+
 
     def toggleStayOnTop(self):
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowStaysOnTopHint)
@@ -847,7 +917,7 @@ class MainWindow(QMainWindow):
             except ValueError as err:
                 errstr, errored = str(err), True
                 if errstr.startswith("Bad Func"):
-                    out_msg = '<Bad function>'
+                    out_msg = '<Unknown function>'
                     errstr = f"{errstr.split()[2]}: no such function"
                 else:
                     out_msg = '?'
@@ -869,17 +939,6 @@ class MainWindow(QMainWindow):
                 any_errored = True
                 self.status_bar.showMessage(errstr, 3000)
                 outtext = (out_msg, len(out_msg))
-            # total.append(float(outtext[0]))
-            # try:
-            #     total.append(float(outtext[0]))
-            # except:
-            #     try:  # fraction?
-            #         if '/' in outtext[0]:
-            #             j, k = outtext[0].split('/')
-            #             val = float(j)/float(k)
-            #             total.append(val)
-            #     except:
-            #         pass
             all_output.append(outtext)
             errored = False
         if not any_errored:

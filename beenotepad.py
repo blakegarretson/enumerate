@@ -1,5 +1,5 @@
 """
-Bee Calc: Cross-platform notebook calculator with robust unit support
+BeeCalc: Cross-platform notebook calculator with robust unit support
 
     Copyright (C) 2023  Blake T. Garretson
 
