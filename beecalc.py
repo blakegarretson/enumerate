@@ -32,9 +32,9 @@ from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
                          QTextCharFormat, QTextOption, QTextCursor)
 from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QToolTip,
-                             QDialog, QDialogButtonBox, QFontComboBox, QFrame,QMenu,QTabWidget,
+                             QDialog, QDialogButtonBox, QFontComboBox, QFrame, QMenu, QTabWidget,
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTableWidgetItem,
-                             QMainWindow, QMessageBox, QPushButton, QTableWidget,QPlainTextEdit,
+                             QMainWindow, QMessageBox, QPushButton, QTableWidget, QPlainTextEdit,
                              QRadioButton, QSizePolicy, QSpinBox, QSplitter, QHeaderView,
                              QStatusBar, QStyle, QTextEdit, QToolBar,
                              QVBoxLayout, QWidget, QScrollBar)
@@ -282,6 +282,7 @@ class BeeOutputSyntaxHighlighter(QSyntaxHighlighter):
                 match = match_iterator.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), char_format)
 
+
 class LicenseWindow(QDialog):
     def __init__(self):
         super().__init__()
@@ -319,7 +320,6 @@ class MainWindow(QMainWindow):
         # fileMenu = self.topmenubar.addMenu('&File')
         # newAct = QAction('New', self)
         # fileMenu.addAction(newAct)
-
 
         font_families = QFontDatabase.families()
         if settings.font not in font_families:
@@ -644,20 +644,21 @@ class MainWindow(QMainWindow):
         # if action == quitAct:
         #     QApplication.instance().quit()
         return True
+
     def showLicenses(self):
         dlg = QDialog(self)
         dlg.setWindowTitle("Licenses")
-        # 
+        #
         tab_widget = QTabWidget()
-        for name,filename in (('BeeCalc','Licenses/LICENSE_BeeCalc'), 
-                              ('GPLv3','Licenses/GPLv3'),
-                              ('PyQt6','Licenses/LICENSE_PyQt6'), 
-                              ('Qt','Licenses/LICENSE_Qt'), 
-                              ('Python','Licenses/LICENSE_Python'), 
-                              ('unitclass','Licenses/LICENSE_unitclass'), 
-                              ):
+        for name, filename in (('BeeCalc', 'Licenses/LICENSE_BeeCalc'),
+                               ('GPLv3', 'Licenses/GPLv3'),
+                               ('PyQt6', 'Licenses/LICENSE_PyQt6'),
+                               ('Qt', 'Licenses/LICENSE_Qt'),
+                               ('Python', 'Licenses/LICENSE_Python'),
+                               ('unitclass', 'Licenses/LICENSE_unitclass'),
+                               ):
             tmp = QPlainTextEdit()
-            tab_widget.addTab(tmp,name)
+            tab_widget.addTab(tmp, name)
             tmp.setPlainText(open(filename).read())
         # tab_widget.setBaseSize(500,500)
         # tab_widget.setGeometry(0,0,400,400)
@@ -665,9 +666,8 @@ class MainWindow(QMainWindow):
         dlg.setLayout(QVBoxLayout())
         dlg.layout().addWidget(tab_widget)
         # dlg.setBaseSize(500,500)
-        dlg.setGeometry(self.geometry().topLeft().x(),self.geometry().topLeft().y(),500,500)
+        dlg.setGeometry(self.geometry().topLeft().x(), self.geometry().topLeft().y(), 500, 500)
         dlg.exec()
-
 
         # msg = QMessageBox(text="BeeCalc",parent=self)
         # msg.setIconPixmap(QPixmap("images/beecalc-icon256.png"))
@@ -683,41 +683,23 @@ class MainWindow(QMainWindow):
         # msg.setLayout(QVBoxLayout())
         # self.layout().addWidget(self.tab_widget)
 
-
-
-
     def showAboutPopup(self):
-        msg = QMessageBox(text="BeeCalc",parent=self)
+        msg = QMessageBox(text="BeeCalc", parent=self)
         msg.setIconPixmap(QPixmap("images/beecalc-icon256.png"))
         # msg.setIcon(QMessageBox.Icon.Information)
-        msg.setStandardButtons(QMessageBox.StandardButton.Ok)#|
-                            #    QMessageBox.StandardButton.Cancel)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)  # |
+        #    QMessageBox.StandardButton.Cancel)
         msg.setDefaultButton(QMessageBox.StandardButton.Ok)
 
-        msg.setDetailedText("Version 0.9.0\nProject Home: http://www.beecalc.com\nEmail comments to blake@beecalc.com\n\n"+
-                            "Copyright (C) 2023  Blake T. Garretson")
+        msg.setDetailedText("Copyright (C) 2023  Blake T. Garretson\nVersion 0.9.0\n\n" +
+                            "Home: http://www.beecalc.com\nSource: https://github.com/blakegarretson/beecalc\nEmail comments to blake@beecalc.com")
 
         msg.setInformativeText("""This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-                               This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-                               You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
-                               
-                               ----------------------
-
-                               If you are running this program as a packaged app (that is, not from source), it came packaged with the following software or libraries:
-                               GPLv3 licensed libraries: 
-                               
-                               Python (https://www.python.org/), PSF License (https://docs.python.org/3/license.html#psf-license)
-                               PyQt6 (https://www.riverbankcomputing.com/), GPLv3 license
-
-                               (test)[http://mit.edu]
-
-                               Qt (https://www.qt.io/), GPLv3 license
+                               See the Licenses dialog in the help menu for full license and licenses of libraries that may be bundled with BeeCalc if you are running a packaged version of this app (e.g. Windows .EXE or Mac app).
                                """)
 
         ret = msg.exec()
-
 
     def toggleStayOnTop(self):
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowStaysOnTopHint)
@@ -903,7 +885,6 @@ class MainWindow(QMainWindow):
     def changeFontBold(self, value):
         self.settings.font_bold = True if value else False
         self.updateFont()
-
 
     def processNotepad(self):
         # try:
