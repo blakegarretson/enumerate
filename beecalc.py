@@ -32,9 +32,9 @@ from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
                          QTextCharFormat, QTextOption, QTextCursor)
 from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QToolTip,
-                             QDialog, QDialogButtonBox, QFontComboBox, QFrame,QMenu,
+                             QDialog, QDialogButtonBox, QFontComboBox, QFrame,QMenu,QTabWidget,
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTableWidgetItem,
-                             QMainWindow, QMessageBox, QPushButton, QTableWidget,
+                             QMainWindow, QMessageBox, QPushButton, QTableWidget,QPlainTextEdit,
                              QRadioButton, QSizePolicy, QSpinBox, QSplitter, QHeaderView,
                              QStatusBar, QStyle, QTextEdit, QToolBar,
                              QVBoxLayout, QWidget, QScrollBar)
@@ -281,6 +281,10 @@ class BeeOutputSyntaxHighlighter(QSyntaxHighlighter):
             while match_iterator.hasNext():
                 match = match_iterator.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), char_format)
+
+class LicenseWindow(QDialog):
+    def __init__(self):
+        super().__init__()
 
 
 class MainWindow(QMainWindow):
@@ -629,6 +633,8 @@ class MainWindow(QMainWindow):
         basicAct = cmenu.addAction("Basic Usage")
         advAct = cmenu.addAction("Advanced Usage")
         webAct = cmenu.addAction("BeeCalc Website")
+        licAct = cmenu.addAction("Licenses")
+        licAct.triggered.connect(self.showLicenses)
         aboutAct = cmenu.addAction("About")
         aboutAct.triggered.connect(self.showAboutPopup)
         # quitAct = cmenu.addAction("Quit")
@@ -638,10 +644,50 @@ class MainWindow(QMainWindow):
         # if action == quitAct:
         #     QApplication.instance().quit()
         return True
+    def showLicenses(self):
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Licenses")
+        # 
+        tab_widget = QTabWidget()
+        for name,filename in (('BeeCalc','Licenses/LICENSE_BeeCalc'), 
+                              ('GPLv3','Licenses/GPLv3'),
+                              ('PyQt6','Licenses/LICENSE_PyQt6'), 
+                              ('Qt','Licenses/LICENSE_Qt'), 
+                              ('Python','Licenses/LICENSE_Python'), 
+                              ('unitclass','Licenses/LICENSE_unitclass'), 
+                              ):
+            tmp = QPlainTextEdit()
+            tab_widget.addTab(tmp,name)
+            tmp.setPlainText(open(filename).read())
+        # tab_widget.setBaseSize(500,500)
+        # tab_widget.setGeometry(0,0,400,400)
+
+        dlg.setLayout(QVBoxLayout())
+        dlg.layout().addWidget(tab_widget)
+        # dlg.setBaseSize(500,500)
+        dlg.setGeometry(self.geometry().topLeft().x(),self.geometry().topLeft().y(),500,500)
+        dlg.exec()
+
+
+        # msg = QMessageBox(text="BeeCalc",parent=self)
+        # msg.setIconPixmap(QPixmap("images/beecalc-icon256.png"))
+        # # msg.setIcon(QMessageBox.Icon.Information)
+        # msg.setStandardButtons(QMessageBox.StandardButton.Ok)#|
+        #                     #    QMessageBox.StandardButton.Cancel)
+        # msg.setDefaultButton(QMessageBox.StandardButton.Ok)
+
+        # tab_widget = QTabWidget()
+        # tab_widget.addTab(QWidget(),"Tab 1")
+        # tab_widget.addTab(QWidget(),"Tab 2")
+
+        # msg.setLayout(QVBoxLayout())
+        # self.layout().addWidget(self.tab_widget)
+
+
+
 
     def showAboutPopup(self):
         msg = QMessageBox(text="BeeCalc",parent=self)
-        
         msg.setIconPixmap(QPixmap("images/beecalc-icon256.png"))
         # msg.setIcon(QMessageBox.Icon.Information)
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)#|
@@ -655,7 +701,20 @@ class MainWindow(QMainWindow):
 
                                This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-                               You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.""")
+                               You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+                               
+                               ----------------------
+
+                               If you are running this program as a packaged app (that is, not from source), it came packaged with the following software or libraries:
+                               GPLv3 licensed libraries: 
+                               
+                               Python (https://www.python.org/), PSF License (https://docs.python.org/3/license.html#psf-license)
+                               PyQt6 (https://www.riverbankcomputing.com/), GPLv3 license
+
+                               (test)[http://mit.edu]
+
+                               Qt (https://www.qt.io/), GPLv3 license
+                               """)
 
         ret = msg.exec()
 
@@ -844,6 +903,7 @@ class MainWindow(QMainWindow):
     def changeFontBold(self, value):
         self.settings.font_bold = True if value else False
         self.updateFont()
+
 
     def processNotepad(self):
         # try:
