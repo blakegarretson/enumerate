@@ -23,6 +23,7 @@ import json
 import math
 import re
 import sys
+import pydoc
 from pathlib import Path
 from fractions import Fraction
 import unitclass
@@ -458,7 +459,10 @@ class MainWindow(QMainWindow):
         elif result := self.re_functionname.search(line):
             word = result.groups()[0]
             if word in self.notepad.parser.functions:
-                QToolTip.showText(self.pos() + self.status_bar.pos(), self.notepad.parser.functions[word].__doc__)
+                func = self.notepad.parser.functions[word]
+                helptext = pydoc.plain(pydoc.render_doc(func, title="%s>>>>"))
+                helptext = helptext[helptext.find('>>>>')+4:].strip().replace(", /)\n",')\n')
+                QToolTip.showText(self.pos() + self.status_bar.pos(), helptext)
 
     def tabReplaceWord(self):
         newword = self.sender().currentText()  # type: ignore

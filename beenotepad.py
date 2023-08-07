@@ -97,7 +97,6 @@ class BeeParser():
             'cbrt': math.cbrt,  # py 3.11
             'ceil': math.ceil,
             'comb': math.comb,
-            'nCr': math.comb,
             'cos': math.cos,
             'cosh': math.cosh,
             'dist': math.dist,
@@ -133,8 +132,6 @@ class BeeParser():
             'tanh': math.tanh,
             'trunc': math.trunc,
             'ulp': math.ulp,
-            'degrees': math.degrees,
-            'radians': math.radians,
             'abs': abs,
             'complex': complex,
             'divmod': divmod,
