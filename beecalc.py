@@ -298,6 +298,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         # self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, False)
 
+        
         self.setUnifiedTitleAndToolBarOnMac(True)
         self.settings = settings
         self.current = current
@@ -650,12 +651,13 @@ class MainWindow(QMainWindow):
         dlg.setWindowTitle("Licenses")
         #
         tab_widget = QTabWidget()
-        for name, filename in (('BeeCalc', 'Licenses/LICENSE_BeeCalc'),
-                               ('GPLv3', 'Licenses/GPLv3'),
-                               ('PyQt6', 'Licenses/LICENSE_PyQt6'),
-                               ('Qt', 'Licenses/LICENSE_Qt'),
-                               ('Python', 'Licenses/LICENSE_Python'),
-                               ('unitclass', 'Licenses/LICENSE_unitclass'),
+        lic_dir = Path("Licenses")
+        for name, filename in (('BeeCalc', lic_dir / 'LICENSE_BeeCalc'),
+                               ('GPLv3', lic_dir / 'GPLv3'),
+                               ('PyQt6', lic_dir / 'LICENSE_PyQt6'),
+                               ('Qt', lic_dir / 'LICENSE_Qt'),
+                               ('Python', lic_dir / 'LICENSE_Python'),
+                               ('unitclass', lic_dir / 'LICENSE_unitclass'),
                                ):
             tmp = QPlainTextEdit()
             tab_widget.addTab(tmp, name)
@@ -691,15 +693,9 @@ class MainWindow(QMainWindow):
         #    QMessageBox.StandardButton.Cancel)
         msg.setDefaultButton(QMessageBox.StandardButton.Ok)
 
-        msg.setDetailedText("Copyright (C) 2023  Blake T. Garretson\nVersion 0.9.0\n\n" +
-                            "Home: http://www.beecalc.com\nSource: https://github.com/blakegarretson/beecalc\nEmail comments to blake@beecalc.com")
-
-        msg.setInformativeText("""This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-                               See the Licenses dialog in the help menu for full license and licenses of libraries that may be bundled with BeeCalc if you are running a packaged version of this app (e.g. Windows .EXE or Mac app).
-                               """)
-
-        ret = msg.exec()
+        msg.setInformativeText("Copyright (C) 2023  Blake T. Garretson\nVersion 0.9.0\n\n" +
+                            "http://www.beecalc.com\n\nEmail comments to blake@beecalc.com")
+        msg.exec()
 
     def toggleStayOnTop(self):
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowStaysOnTopHint)
@@ -1019,6 +1015,7 @@ class MainWindow(QMainWindow):
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
 app.setWindowIcon(QIcon("images/beecalc-icon.svg"))
+# app.setAttribute(Qt.AA_DontUseNativeMenuBar)
 window = MainWindow(*initililize_config())
 window.show()
 app.exec()
