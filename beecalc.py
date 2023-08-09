@@ -690,14 +690,14 @@ class MainWindow(QMainWindow):
         # self.layout().addWidget(self.tab_widget)
 
     def showAboutPopup(self):
-        msg = QMessageBox(text="BeeCalc", parent=self)
-        msg.setIconPixmap(QPixmap("images/beecalc-icon256.png"))
+        msg = QMessageBox(text="BeeCalc 0.9.0", parent=self)
+        msg.setIconPixmap(QPixmap("images/beecalc-icon128.png"))
         # msg.setIcon(QMessageBox.Icon.Information)
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)  # |
         #    QMessageBox.StandardButton.Cancel)
         msg.setDefaultButton(QMessageBox.StandardButton.Ok)
 
-        msg.setInformativeText("Copyright (C) 2023  Blake T. Garretson\nVersion 0.9.0\n\n" +
+        msg.setInformativeText("Copyright (C) 2023  Blake T. Garretson\n\n" +
                             "http://www.beecalc.com\n\nEmail comments to blake@beecalc.com")
         msg.exec()
 
