@@ -1,0 +1,1 @@
+pyside6-rcc resources.qrc | sed '/from PySide6 import/s/PySide6/PyQt6/' > resources.py

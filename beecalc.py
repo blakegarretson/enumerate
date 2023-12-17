@@ -22,12 +22,12 @@ BeeCalc: Cross-platform notebook calculator with robust unit support
 import json
 import math
 import re
-import sys
+import sys, os
 import pydoc
 from pathlib import Path
 from fractions import Fraction
 import unitclass
-from PyQt6.QtCore import (QCoreApplication, QEvent, QMargins, QPoint,
+from PyQt6.QtCore import (QCoreApplication, QEvent, QMargins, QPoint,QFile,QTextStream,
                           QRegularExpression, QSize, Qt, QTimer)
 from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
@@ -42,7 +42,10 @@ from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, Q
 
 import beenotepad
 import time
+import resources #resources not explicitly used, but used in QFile, QIcon, QPixmap, etc.
 
+basedir = os.path.dirname(__file__)
+sys.path.append(basedir)
 # import ctypes
 # ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('BTG.BeeCalc.BeeCalc.1')
 
@@ -109,16 +112,16 @@ default_themes = {
     ),
     'Light': dict(
         theme='Light',
-        color_text='#000000',
+        color_text='#55555b',
         color_background='#ffffff',
-        color_comment='#f25c02',  # #comment
-        color_constant='#f92f77',
-        color_function='#268509',  # sin(), pi
-        color_operator='#f92f77',  # + - / etc
+        color_comment='#c76a2f',  # #comment
+        color_constant='#ee6997',
+        color_function='#64ae4e',  # sin(), pi
+        color_operator='#e56c96',  # + - / etc
         color_variable='#2c92b0',
-        color_unit='#4553bf',
-        color_conversion='#fe9720',
-        color_error='#fe2020',
+        color_unit='#5f6abf',
+        color_conversion='#e99b42',
+        color_error='#dc3939',
     )
 
 }
@@ -655,19 +658,19 @@ class MainWindow(QMainWindow):
         dlg.setWindowTitle("Licenses")
         #
         tab_widget = QTabWidget()
-        lic_dir = Path("Licenses")
-        for name, filename in (('BeeCalc', lic_dir / 'LICENSE_BeeCalc'),
-                               ('GPLv3', lic_dir / 'GPLv3'),
-                               ('PyQt6', lic_dir / 'LICENSE_PyQt6'),
-                               ('Qt', lic_dir / 'LICENSE_Qt'),
-                               ('Python', lic_dir / 'LICENSE_Python'),
-                               ('unitclass', lic_dir / 'LICENSE_unitclass'),
+        for name, filename in (('BeeCalc', 'LICENSE_BeeCalc'),
+                               ('GPLv3', 'GPLv3'),
+                               ('PyQt6', 'LICENSE_PyQt6'),
+                               ('Qt', 'LICENSE_Qt'),
+                               ('Python', 'LICENSE_Python'),
+                               ('unitclass', 'LICENSE_unitclass'),
                                ):
             tmp = QPlainTextEdit()
             tab_widget.addTab(tmp, name)
-            tmp.setPlainText(open(filename).read())
-        # tab_widget.setBaseSize(500,500)
-        # tab_widget.setGeometry(0,0,400,400)
+            print(filename)
+            lfile = QFile(":"+filename)
+            lfile.open(QFile.OpenModeFlag.ReadOnly|QFile.OpenModeFlag.Text)
+            tmp.setPlainText(QTextStream(lfile).readAll())
 
         dlg.setLayout(QVBoxLayout())
         dlg.layout().addWidget(tab_widget)
@@ -691,7 +694,8 @@ class MainWindow(QMainWindow):
 
     def showAboutPopup(self):
         msg = QMessageBox(text="BeeCalc 0.9.0", parent=self)
-        msg.setIconPixmap(QPixmap("images/beecalc-icon128.png"))
+        msg.setIconPixmap(QPixmap(":beecalc-icon128.png"))
+        # msg.setIconPixmap(QPixmap("resources/beecalc-icon128.png"))
         # msg.setIcon(QMessageBox.Icon.Information)
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)  # |
         #    QMessageBox.StandardButton.Cancel)
@@ -1015,10 +1019,12 @@ class MainWindow(QMainWindow):
         self.statslabel.setText(f'n={n} sum={sum_:g} avg={avg}')
         print('processed', time.asctime())
 
+iconfile = Path(basedir) / "resources" / "beecalc-icon.svg"
 
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
-app.setWindowIcon(QIcon("images/beecalc-icon.svg"))
+app.setWindowIcon(QIcon(":beecalc-icon.svg"))
+# app.setWindowIcon(QIcon(str(iconfile)))
 # app.setAttribute(Qt.AA_DontUseNativeMenuBar)
 window = MainWindow(*initililize_config())
 window.show()

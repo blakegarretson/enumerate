@@ -1,0 +1,1 @@
+py2applet --iconfile=resources/beecalc.icns beecalc.py

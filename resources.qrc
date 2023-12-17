@@ -1,0 +1,12 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file alias="beecalc-icon.svg">resources/beecalc-icon.svg</file>
+    <file alias="beecalc-icon128.png">resources/beecalc-icon128.png</file>
+    <file alias="GPLv3">Licenses/GPLv3</file>
+    <file alias="LICENSE_BeeCalc">Licenses/LICENSE_BeeCalc</file>
+    <file alias="LICENSE_PyQt6">Licenses/LICENSE_PyQt6</file>
+    <file alias="LICENSE_Python">Licenses/LICENSE_Python</file>
+    <file alias="LICENSE_Qt">Licenses/LICENSE_Qt</file>
+    <file alias="LICENSE_unitclass">Licenses/LICENSE_unitclass</file>
+</qresource>
+</RCC>
