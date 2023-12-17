@@ -824,7 +824,7 @@ class MainWindow(QMainWindow):
         num_hbox1.addWidget(self.digitsLabel)
 
         self.digitsSpinBox = QSpinBox()
-        self.digitsSpinBox.setMaximum(20)
+        self.digitsSpinBox.setMaximum(16)
         self.digitsSpinBox.setMinimum(1)
         self.digitsSpinBox.setValue(int(self.settings.num_digits))  # type: ignore
         self.digitsSpinBox.valueChanged.connect(self.changeNumDigits)
