@@ -22,12 +22,13 @@ BeeCalc: Cross-platform notebook calculator with robust unit support
 import json
 import math
 import re
-import sys, os
+import sys
+import os
 import pydoc
 from pathlib import Path
 from fractions import Fraction
 import unitclass
-from PyQt6.QtCore import (QCoreApplication, QEvent, QMargins, QPoint,QFile,QTextStream,
+from PyQt6.QtCore import (QCoreApplication, QEvent, QMargins, QPoint, QFile, QTextStream,
                           QRegularExpression, QSize, Qt, QTimer)
 from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
@@ -37,24 +38,24 @@ from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, Q
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTableWidgetItem,
                              QMainWindow, QMessageBox, QPushButton, QTableWidget, QPlainTextEdit,
                              QRadioButton, QSizePolicy, QSpinBox, QSplitter, QHeaderView,
-                             QStatusBar, QStyle, QTextEdit, QToolBar,
+                             QStatusBar, QStyle, QTextEdit, QToolBar, QToolButton,QSizePolicy,
                              QVBoxLayout, QWidget, QScrollBar)
 
 import beenotepad
 import time
-import resources #resources not explicitly used, but used in QFile, QIcon, QPixmap, etc.
+# resources not explicitly used, but used in QFile, QIcon, QPixmap, etc.
+import resources
 
 basedir = os.path.dirname(__file__)
 sys.path.append(basedir)
-# import ctypes
-# ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('BTG.BeeCalc.BeeCalc.1')
 
 
 class ConfirmationDialog(QDialog):
     def __init__(self, parent, title, message):
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.buttonBox = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
         layout = QVBoxLayout()
@@ -220,16 +221,19 @@ class BeeInputSyntaxHighlighter(QSyntaxHighlighter):
 
         self.rules = []
         self.var_re_str = r'(?<!\w )\b({})\b'
-        self.var_re = QRegularExpression(r'|'.join([self.var_re_str.format(w) for w in variables]))
+        self.var_re = QRegularExpression(
+            r'|'.join([self.var_re_str.format(w) for w in variables]))
         rule_pairs = [  # order matters below, more general go first and are overridden by more specific
             (r'[a-zA-Z_Ωμ°]+[0-9⁰¹²³⁴⁵⁶⁷⁸⁹]*', settings.color_unit),  # units
             (r'\$', settings.color_unit),  # units
             (r'(?<=\d)\s*%', settings.color_unit),  # %
             (r'(?<=\d)\s*%\s*(?=\d)', settings.color_operator),  # %
-            ('|'.join([rf'(\b{i}\()' for i in function_list]), settings.color_function),  # function call
+            ('|'.join([rf'(\b{i}\()' for i in function_list]),
+             settings.color_function),  # function call
             (r'[+-/*=(),^]', settings.color_operator),  # operator
             (r'\?', settings.color_error),  # ERROR
-            ('|'.join([rf'(\b{i}\b)' for i in constant_list]), settings.color_constant),  # constant
+            ('|'.join([rf'(\b{i}\b)' for i in constant_list]),
+             settings.color_constant),  # constant
             (r"\b\d+\.*\d*([Ee][-+]?)?\d?", settings.color_text),  # numbers
             (r' to ', settings.color_conversion),  # conversion
             # (r'(?<=[a-zA-Z_Ωμ°][0-9⁰¹²³⁴⁵⁶⁷⁸⁹])|(?<=[a-zA-Z_Ωμ°@])\s*(( in )|( to ))(?=[a-zA-Z_Ωμ°])', settings.color_conversion),  # conversion
@@ -249,7 +253,8 @@ class BeeInputSyntaxHighlighter(QSyntaxHighlighter):
                 self.rules.append((self.var_re, rule_format))
 
     def updateVars(self, variables):
-        self.var_re.setPattern(r'|'.join([self.var_re_str.format(w) for w in variables]))
+        self.var_re.setPattern(
+            r'|'.join([self.var_re_str.format(w) for w in variables]))
 
     def highlightBlock(self, text):
         # print(self.var_re)
@@ -257,7 +262,8 @@ class BeeInputSyntaxHighlighter(QSyntaxHighlighter):
             match_iterator = QRegularExpression(pattern).globalMatch(text)
             while match_iterator.hasNext():
                 match = match_iterator.next()
-                self.setFormat(match.capturedStart(), match.capturedLength(), char_format)
+                self.setFormat(match.capturedStart(),
+                               match.capturedLength(), char_format)
 
 
 class BeeOutputSyntaxHighlighter(QSyntaxHighlighter):
@@ -284,47 +290,108 @@ class BeeOutputSyntaxHighlighter(QSyntaxHighlighter):
             match_iterator = QRegularExpression(pattern).globalMatch(text)
             while match_iterator.hasNext():
                 match = match_iterator.next()
-                self.setFormat(match.capturedStart(), match.capturedLength(), char_format)
+                self.setFormat(match.capturedStart(),
+                               match.capturedLength(), char_format)
 
 
-class LicenseWindow(QDialog):
-    def __init__(self):
-        super().__init__()
+class BeeCalcTitleBar(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.initial_pos = None
+        title_bar_layout = QHBoxLayout(self)
+        title_bar_layout.setContentsMargins(1, 1, 1, 1)
+        title_bar_layout.setSpacing(2)
+
+        self.menu_button = QToolButton(self)
+        self.menu_button.setText("☰")
+        self.menu_button.clicked.connect(parent.showNotepadPopup)
+        self.menu_button.setToolTip("Change notepads")
+        # self.menu_button.setStatusTip("Change notepads")
+
+        self.add_button = QToolButton(self)
+        self.add_button.setText('+')
+        self.add_button.clicked.connect(parent.addNotepad)
+        self.add_button.setToolTip('Create new notepad')
+
+        self.trash_button = QToolButton(self)
+        self.trash_button.setText("–")
+        self.trash_button.clicked.connect(parent.deleteNotepad)
+        self.trash_button.setToolTip('Delete current notepad')
+
+        self.settings_button = QToolButton(self)
+        self.settings_button.setText("⚙")
+        self.settings_button.clicked.connect(parent.help)
+        # self.settings_button.clicked.connect(parent.settingsMenu)
+        self.settings_button.setToolTip("Settings menu")
+
+        self.pin_button = QToolButton(self)
+        self.pin_button.setText("○")
+        # self.pin_button.setText("⦿")
+        self.pin_button.clicked.connect(parent.toggleStayOnTop)
+        self.pin_button.setToolTip("Keep window on top")
+
+        self.help_button = QToolButton(self)
+        self.help_button.setText("?")
+        self.help_button.clicked.connect(parent.helpPopupMenu)
+        self.help_button.setToolTip("App Help & Info")
+
+        self.min_button = QToolButton(self)
+        self.min_button.setText('_')
+        self.min_button.clicked.connect(self.window().showMinimized)
+
+        self.close_button = QToolButton(self)
+        self.close_button.setText("×")
+        # self.close_button.setText("╳")
+        self.close_button.clicked.connect(self.window().close)
+
+        def add_button(button, fontsize=16, weight='normal'):
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            button.setFixedSize(QSize(20, 20))
+            button.setStyleSheet(
+                f"QToolButton {{ border: none; padding: 2px; font-size: {fontsize}pt; color: #959595; font-weight: {weight}; }}"
+            )
+            title_bar_layout.addWidget(button)
+
+        add_button(self.menu_button)
+        add_button(self.add_button)
+        add_button(self.trash_button)
+        add_button(self.settings_button, 20)
+
+        self.title = QLabel(parent.windowTitle(), self)
+        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title.setStyleSheet(
+            "QLabel {font-size: 12pt; color: #959595; }")  # margin-left: 48px;
+        title_bar_layout.addWidget(self.title)
+
+        add_button(self.pin_button)
+        add_button(self.help_button)
+        add_button(self.min_button, weight='bold')
+        add_button(self.close_button, 18, 'bold')
 
 
 class MainWindow(QMainWindow):
     re_zeropoint = re.compile(r"[. ]|$")
     re_incomplete = re.compile(r'(.*?\s*)\b(\w+)$')
     re_functionname = re.compile(r'\b(\w+)\($')
-    # re_incomplete = re.compile(r'\b\w+$')
 
     def __init__(self, settings, current, notepads):
         super().__init__()
-        # self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, False)
 
-        
         self.setUnifiedTitleAndToolBarOnMac(True)
         self.settings = settings
         self.current = current
         self.notepads = notepads
         self.updateStyle()  # apply stylesheets for widget defaults
+
+        # Status Bar
         self.status_bar = QStatusBar(self)
         self.setStatusBar(self.status_bar)
-        self.statslabel = QLabel("n=3 sum=324 avg=43.43")
+        self.statslabel = QLabel("")
         self.statslabel.setStyleSheet(f"color:#65666b;")
         self.status_bar.addPermanentWidget(self.statslabel)
-        # self.status_bar.showMessage("Welcome to BeeCalc!", 3000)
-
-        self.resize(500, 500)
-        self.setWindowTitle("BeeCalc")
 
         self.notepad = beenotepad.BeeNotepad()
         input_text = self.getNotepadText(self.current)
-
-        # self.topmenubar = self.menuBar()
-        # fileMenu = self.topmenubar.addMenu('&File')
-        # newAct = QAction('New', self)
-        # fileMenu.addAction(newAct)
 
         font_families = QFontDatabase.families()
         if settings.font not in font_families:
@@ -333,6 +400,11 @@ class MainWindow(QMainWindow):
                     self.settings.font = fontname
                     break
 
+        self.setWindowTitle("BeeCalc")
+        self.resize(400, 600)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
         self.input = QTextEdit()
         self.output = QTextEdit()
         splitter = QSplitter()
@@ -340,7 +412,7 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.output)
         splitter.setStretchFactor(0, 5)
         splitter.setStretchFactor(1, 4)
-        splitter.setHandleWidth(0)
+        splitter.setHandleWidth(2)
         splitter.setCollapsible(0, False)
         splitter.setCollapsible(1, False)
 
@@ -351,7 +423,8 @@ class MainWindow(QMainWindow):
         self.input.setAcceptRichText(False)
         self.syntax_highlighter_in = BeeInputSyntaxHighlighter(
             self.settings, tuple(self.notepad.parser.vars.keys()), self.input.document())
-        self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(self.settings, self.output.document())
+        self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(
+            self.settings, self.output.document())
 
         self.inputScrollbar = self.input.verticalScrollBar()
         self.inputScrollbar.hide()
@@ -360,36 +433,59 @@ class MainWindow(QMainWindow):
         self.inputScrollbar.valueChanged.connect(self.syncScroll)
         self.outputScrollbar.valueChanged.connect(self.syncScroll)
 
-        self.input.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.output.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.input.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.output.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.input.horizontalScrollBar().setFixedHeight(0)
         self.output.horizontalScrollBar().setFixedHeight(0)
 
         # need this for tab completion
         self.tabPopupVisable = False
 
+        self.title_bar = BeeCalcTitleBar(self)
+
+        # Notepad combo box
+        self.notepadBox = QComboBox(self)
+        self.populateNotepadBox()
+        self.notepadBox.setCurrentIndex(self.current)
+        self.notepadBox.hide()
+
         layout = QVBoxLayout()
+        # layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.title_bar)
+        # splitter.setAutoFillBackground(True)
+        splitter.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding)
         layout.addWidget(splitter)
 
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
 
         container = QWidget()
+        container.setObjectName("Container")
+        container.setStyleSheet("""#Container {
+            background: #262728 ;
+            border-radius: 10px;
+        }""")
+        # background: #e6e6e6 ;
         container.setLayout(layout)
 
-        self.makeMainToolbar()
-        self.makeStyleToolbar()
-        self.stylebar.hide()
-
-        # shortcuts
         self.input.installEventFilter(self)
-        QShortcut(QKeySequence('Ctrl+D'), self).activated.connect(self.duplicateLine)
-        QShortcut(QKeySequence('Ctrl+Shift+N'), self).activated.connect(self.deleteNotepad)
-        QShortcut(QKeySequence('Ctrl+N'), self).activated.connect(self.addNotepad)
-        QShortcut(QKeySequence('Ctrl+M'), self).activated.connect(self.toggleMenuToolbar)
-        QShortcut(QKeySequence('Ctrl+Shift+F'), self).activated.connect(self.toggleStyleToolbar)
-        QShortcut(QKeySequence('Ctrl+Shift+S'), self).activated.connect(self.simplify)
-        QShortcut(QKeySequence('Ctrl+Shift+E'), self).activated.connect(self.expand)
+        QShortcut(QKeySequence('Ctrl+D'),
+                  self).activated.connect(self.duplicateLine)
+        QShortcut(QKeySequence('Ctrl+Shift+N'),
+                  self).activated.connect(self.deleteNotepad)
+        QShortcut(QKeySequence('Ctrl+N'),
+                  self).activated.connect(self.addNotepad)
+        # QShortcut(QKeySequence('Ctrl+M'),
+        #           self).activated.connect(self.toggleMenuToolbar)
+        # QShortcut(QKeySequence('Ctrl+Shift+F'),
+        #           self).activated.connect(self.toggleStyleToolbar)
+        QShortcut(QKeySequence('Ctrl+Shift+S'),
+                  self).activated.connect(self.simplify)
+        QShortcut(QKeySequence('Ctrl+Shift+E'),
+                  self).activated.connect(self.expand)
 
         self.setCentralWidget(container)
 
@@ -398,8 +494,30 @@ class MainWindow(QMainWindow):
         cursor = self.input.textCursor()
         cursor.setPosition(len(input_text))
         self.input.setTextCursor(cursor)
-        # self.input.textChanged.connect(self.processNotepad)
-        # self.processNotepad()
+
+    def help(self):
+        print("Help")
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.initial_pos = event.position().toPoint()
+        super().mousePressEvent(event)
+        event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self.initial_pos is not None:
+            delta = event.position().toPoint() - self.initial_pos
+            self.window().move(
+                self.window().x() + delta.x(),
+                self.window().y() + delta.y(),
+            )
+        super().mouseMoveEvent(event)
+        event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self.initial_pos = None
+        super().mouseReleaseEvent(event)
+        event.accept()
 
     def eventFilter(self, obj, event):
         if obj == self.input and event.type() == QEvent.Type.KeyPress:
@@ -496,11 +614,12 @@ class MainWindow(QMainWindow):
     def updateStyle(self):
         self.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {self.settings.color_background};
+                background-color: transparent;
                 color: {self.settings.color_text};
                 padding: 0px;
             }}
             """)
+                # background-color: {self.settings.color_background};
         # padding: 5px 5px 7px 5px;
         #         border: none;
 
@@ -545,19 +664,6 @@ class MainWindow(QMainWindow):
                 self.outputScrollbar.setValue(value)
             elif sender == self.outputScrollbar:
                 self.inputScrollbar.setValue(value)
-
-    def toggleStyleToolbar(self):
-        if self.stylebar.isVisible():
-            self.stylebar.hide()
-        else:
-            self.stylebar.show()
-
-    def toggleMenuToolbar(self):
-        if self.menubar.isVisible():
-            self.menubar.hide()
-        else:
-            self.menubar.show()
-
     def populateNotepadBox(self):
         self.notepadBox.clear()
         for i in self.getNotepadHeaders():
@@ -583,57 +689,6 @@ class MainWindow(QMainWindow):
             self.current = self.notepadBox.currentIndex()
             self.input.setText(self.getNotepadText(self.current))
             self.processNotepad()
-
-    def makeMainToolbar(self):
-        self.notepadButton = QAction('☰', self)
-        self.notepadButton.triggered.connect(self.showNotepadPopup)
-        self.notepadButton.setStatusTip("Change notepads")
-
-        self.notepadBox = QComboBox(self)
-        self.populateNotepadBox()
-        self.notepadBox.setCurrentIndex(self.current)
-        self.notepadBox.hide()
-        self.notepadAddButton = QAction('+', self)
-        self.notepadAddButton.triggered.connect(self.addNotepad)
-        self.notepadAddButton.setStatusTip("Create new notepad")
-
-        self.stayOnTopButton = QAction('top', self)
-        self.stayOnTopButton.setCheckable(True)
-        # self.stayOnTopButton = QAction('📌', self)
-        self.stayOnTopButton.triggered.connect(self.toggleStayOnTop)
-        self.stayOnTopButton.setStatusTip("Window stays on top")
-
-        self.helpButton = QAction('?', self)
-        self.helpButton.triggered.connect(self.helpPopupMenu)
-        self.helpButton.setStatusTip("App Help & Info")
-
-        self.notepadDeleteButton = QAction('×', self)
-        self.notepadDeleteButton.triggered.connect(self.deleteNotepad)
-        self.notepadDeleteButton.setStatusTip("Delete current notepad")
-
-        # settings_button = QAction("⚙", self)
-        # settings_button.triggered.connect(self.openSettings)
-
-        self.style_button = QAction("Aa", self)
-        self.style_button.triggered.connect(self.toggleStyleToolbar)
-        self.style_button.setStatusTip("Style options")
-
-        self.menubar = self.addToolBar("Main Menu")
-        self.menubar.setMovable(False)
-        # self.menubar.setFeatures(Qt.NoDockWidgetFeatures)
-
-        self.menubar.addAction(self.notepadButton)
-        self.menubar.addAction(self.notepadAddButton)
-        self.menubar.addSeparator()
-        self.menubar.addAction(self.style_button)
-
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.menubar.addWidget(spacer)
-        self.menubar.addAction(self.stayOnTopButton)
-        self.menubar.addAction(self.helpButton)
-        self.menubar.addAction(self.notepadDeleteButton)
-
     def helpPopupMenu(self, event):
         # print(event)
         # obj = self.sender()
@@ -708,6 +763,10 @@ class MainWindow(QMainWindow):
     def toggleStayOnTop(self):
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowStaysOnTopHint)
         self.show()
+        if bool(self.windowFlags() & Qt.WindowType.WindowStaysOnTopHint):
+            self.title_bar.pin_button.setText("⦿")
+        else:
+            self.title_bar.pin_button.setText("○")
 
     def changeAlignment(self):
         self.settings.align = self.alignment.isChecked()
@@ -734,112 +793,6 @@ class MainWindow(QMainWindow):
         else:
             self.settings.num_fixdigits = value
         self.processNotepad()
-
-    def makeStyleToolbar(self):
-        self.stylebar = QToolBar('Style')
-        self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, self.stylebar)
-        self.stylebar.setMovable(False)
-        container = QWidget()
-        self.stylebar.addWidget(container)
-
-        layout = QVBoxLayout()
-        layout.setSpacing(0)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        row1 = QHBoxLayout()
-        layout.setSpacing(0)
-        row1.setContentsMargins(0, 0, 0, 0)
-        row2 = QHBoxLayout()
-        layout.addLayout(row1)
-        layout.addLayout(row2)
-        container.setLayout(layout)
-
-        font_group = QGroupBox("Font Options")
-        row1.addWidget(font_group)
-        font_hbox1 = QHBoxLayout()
-        font_hbox1.setContentsMargins(5, 5, 5, 5)
-        font_group.setLayout(font_hbox1)
-
-        fontBox = QFontComboBox(self)
-        fontBox.setCurrentFont(QFont(self.settings.font))
-        fontBox.setMinimumContentsLength(8)
-        fontBox.currentFontChanged.connect(self.changeFont)
-        font_hbox1.addWidget(fontBox)
-
-        fontSizeBox = QComboBox(self)
-        fontSizeBox.setEditable(True)
-        fontSizeBox.setMinimumContentsLength(2)
-        font_sizes = [str(i) for i in range(8, 80, 2)]
-        for i in font_sizes:
-            fontSizeBox.addItem(i)
-        if str(self.settings.font_size) in font_sizes:
-            index = font_sizes.index(str(self.settings.font_size))
-            fontSizeBox.setCurrentIndex(index)
-        else:
-            fontSizeBox.setCurrentText(str(self.settings.font_size))
-        fontSizeBox.currentTextChanged.connect(self.changeFontSize)
-        font_hbox1.addWidget(fontSizeBox)
-
-        boldBtn = QPushButton("Bold")
-        boldBtn.setCheckable(True)
-        boldBtn.setChecked(True if self.settings.font_bold else False)
-        boldBtn.setMaximumWidth(int(self.width()/4))
-        boldBtn.clicked.connect(self.changeFontBold)
-        font_hbox1.addWidget(boldBtn)
-
-        theme_group = QGroupBox("Theme")
-        row1.addWidget(theme_group)
-        theme_hbox1 = QHBoxLayout()
-        theme_hbox1.setContentsMargins(5, 5, 5, 5)
-        theme_group.setLayout(theme_hbox1)
-
-        themeBox = QComboBox(self)
-        themeBox.setEditable(False)
-        themeBox.setMinimumContentsLength(8)
-        themes = list(default_themes.keys())
-        for i in themes:
-            themeBox.addItem(i)
-        index = themes.index(self.settings.theme)  # type: ignore
-        themeBox.setCurrentIndex(index)
-        themeBox.currentTextChanged.connect(self.changeTheme)
-        theme_hbox1.addWidget(themeBox)
-        spacer1 = QWidget()
-        spacer1.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        row1.addWidget(spacer1)
-
-        num_group = QGroupBox("Number Format")
-        row2.addWidget(num_group)
-        num_hbox1 = QHBoxLayout()
-        num_hbox1.setContentsMargins(5, 5, 5, 5)
-        num_group.setLayout(num_hbox1)
-
-        for label in ('Auto', 'Fix'):
-            numbtn = QRadioButton(label)
-            if label == self.settings.num_fmt:
-                numbtn.setChecked(True)
-            numbtn.toggled.connect(self.changeNumFormat)
-            num_hbox1.addWidget(numbtn)
-
-        self.digitsLabel = QLabel(self.getDigitsLabel())
-        num_hbox1.addWidget(self.digitsLabel)
-
-        self.digitsSpinBox = QSpinBox()
-        self.digitsSpinBox.setMaximum(16)
-        self.digitsSpinBox.setMinimum(1)
-        self.digitsSpinBox.setValue(int(self.settings.num_digits))  # type: ignore
-        self.digitsSpinBox.valueChanged.connect(self.changeNumDigits)
-        num_hbox1.addWidget(self.digitsSpinBox)
-
-        self.alignment = QCheckBox('Align Decimals', self)
-        self.alignment.setChecked(True if self.settings.align else False)
-        self.changeAlignment()
-        self.alignment.stateChanged.connect(self.changeAlignment)
-        num_hbox1.addWidget(self.alignment)
-
-        spacer2 = QWidget()
-        spacer2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        row2.addWidget(spacer2)
-
     def getDigitsLabel(self):
         if self.settings.num_fmt == 'Auto':
             return " Significant Digits: "
@@ -1019,13 +972,9 @@ class MainWindow(QMainWindow):
         self.statslabel.setText(f'n={n} sum={sum_:g} avg={avg}')
         print('processed', time.asctime())
 
-iconfile = Path(basedir) / "resources" / "beecalc-icon.svg"
-
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
 app.setWindowIcon(QIcon(":beecalc-icon.svg"))
-# app.setWindowIcon(QIcon(str(iconfile)))
-# app.setAttribute(Qt.AA_DontUseNativeMenuBar)
 window = MainWindow(*initililize_config())
 window.show()
 app.exec()
