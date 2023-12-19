@@ -75,7 +75,7 @@ default_themes = {
     'Monokai': dict(
         theme='Monokai',
         color_text="#fefaf4",
-        color_background="#2c292d",
+        color_background="#262728",
         color_comment="#ff6289",
         color_constant="#ff6289",
         color_function="#aadc76",
@@ -84,6 +84,9 @@ default_themes = {
         color_unit="#ab9df3",
         color_conversion="#fd9967",
         color_error='#ff6289',
+        color_menu='#959595',
+        color_status='#959595',
+        color_stats='#535353',
     ),
     'Muted': dict(
         theme='Muted',
@@ -97,6 +100,9 @@ default_themes = {
         color_unit='#d799b6',
         color_conversion='#85928a',
         color_error='#e67e81',
+        color_menu='#959595',
+        color_status='#959595',
+        color_stats='#535353',
     ),
     'Solarized': dict(
         theme='Solarized',
@@ -110,6 +116,9 @@ default_themes = {
         color_unit='#6c71c4',
         color_conversion='#cb4b16',
         color_error='#dc322f',
+        color_menu='#959595',
+        color_status='#959595',
+        color_stats='#535353',
     ),
     'Light': dict(
         theme='Light',
@@ -123,6 +132,9 @@ default_themes = {
         color_unit='#5f6abf',
         color_conversion='#e99b42',
         color_error='#dc3939',
+        color_menu='#808080',
+        color_status='#464646',
+        color_stats='#a4a4a4',
     )
 
 }
@@ -294,9 +306,42 @@ class BeeOutputSyntaxHighlighter(QSyntaxHighlighter):
                                match.capturedLength(), char_format)
 
 
+class BeeCalcStatusBar(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.initial_pos = None
+        status_bar_layout = QHBoxLayout(self)
+        status_bar_layout.setContentsMargins(1, 1, 1, 1)
+        status_bar_layout.setSpacing(2)
+
+        self.status = QLabel("Status", self)
+        self.status.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.status.setStyleSheet(f"QLabel {{font-size: 12pt; color: {parent.settings.color_status}; }}")
+
+        self.statslabel = QLabel("")
+        self.statslabel.setFixedHeight(20)
+        self.statslabel.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.statslabel.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.statslabel.setStyleSheet(f"QLabel {{font-size: 12pt; color: {parent.settings.color_stats}; }}")
+
+        status_bar_layout.addWidget(self.status)
+        status_bar_layout.addWidget(self.statslabel)
+
+    def showMessage(self, msg, duration=3000):
+        self.status.setText(msg)
+        self.timer = QTimer()
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.clearMessage)
+        self.timer.start(duration)
+
+
+    def clearMessage(self):
+        self.status.setText("")
+
 class BeeCalcTitleBar(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
+        self.parent = parent
         self.initial_pos = None
         title_bar_layout = QHBoxLayout(self)
         title_bar_layout.setContentsMargins(1, 1, 1, 1)
@@ -320,7 +365,7 @@ class BeeCalcTitleBar(QWidget):
 
         self.settings_button = QToolButton(self)
         self.settings_button.setText("⚙")
-        self.settings_button.clicked.connect(parent.help)
+        self.settings_button.clicked.connect(parent.openSettings)
         # self.settings_button.clicked.connect(parent.settingsMenu)
         self.settings_button.setToolTip("Settings menu")
 
@@ -344,30 +389,38 @@ class BeeCalcTitleBar(QWidget):
         # self.close_button.setText("╳")
         self.close_button.clicked.connect(self.window().close)
 
+        self.buttons = []
         def add_button(button, fontsize=16, weight='normal'):
+            self.buttons.append((button, fontsize, weight))
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             button.setFixedSize(QSize(20, 20))
-            button.setStyleSheet(
-                f"QToolButton {{ border: none; padding: 2px; font-size: {fontsize}pt; color: #959595; font-weight: {weight}; }}"
-            )
             title_bar_layout.addWidget(button)
 
+        # print(">>",self.close_button.fontInfo().pointSize(), self.close_button.fontInfo().pixelSize(), self.close_button.fontInfo().fixedPitch() )
         add_button(self.menu_button)
         add_button(self.add_button)
         add_button(self.trash_button)
         add_button(self.settings_button, 20)
+        print(self.settings_button.styleSheet())
 
         self.title = QLabel(parent.windowTitle(), self)
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title.setStyleSheet(
-            "QLabel {font-size: 12pt; color: #959595; }")  # margin-left: 48px;
+            f"QLabel {{color: {parent.settings.color_menu}; }}")  # margin-left: 48px;
         title_bar_layout.addWidget(self.title)
 
         add_button(self.pin_button)
         add_button(self.help_button)
         add_button(self.min_button, weight='bold')
         add_button(self.close_button, 18, 'bold')
-
+        self.updateButtonStyle()
+        # print("<<",self.close_button.fontInfo().pointSize(), self.close_button.fontInfo().pixelSize(), self.close_button.fontInfo().fixedPitch() )
+    def updateButtonStyle(self):
+        for button, fontsize, weight in self.buttons:
+            button.setStyleSheet(
+                f"QToolButton {{ border: none; padding: 2px; font-size: {fontsize}pt; color: {self.parent.settings.color_status}; font-weight: {weight}; }}"
+            )
+            
 
 class MainWindow(QMainWindow):
     re_zeropoint = re.compile(r"[. ]|$")
@@ -381,14 +434,16 @@ class MainWindow(QMainWindow):
         self.settings = settings
         self.current = current
         self.notepads = notepads
-        self.updateStyle()  # apply stylesheets for widget defaults
 
         # Status Bar
-        self.status_bar = QStatusBar(self)
-        self.setStatusBar(self.status_bar)
-        self.statslabel = QLabel("")
-        self.statslabel.setStyleSheet(f"color:#65666b;")
-        self.status_bar.addPermanentWidget(self.statslabel)
+        self.status_bar = BeeCalcStatusBar(self)
+        self.status = self.status_bar.status
+        self.statslabel = self.status_bar.statslabel
+        # self.status_bar = QStatusBar(self)
+        # self.setStatusBar(self.status_bar)
+        # self.statslabel = QLabel("")
+        # self.statslabel.setStyleSheet(f"color:#65666b;")
+        # self.status_bar.addPermanentWidget(self.statslabel)
 
         self.notepad = beenotepad.BeeNotepad()
         input_text = self.getNotepadText(self.current)
@@ -458,18 +513,16 @@ class MainWindow(QMainWindow):
         # splitter.setAutoFillBackground(True)
         splitter.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding)
         layout.addWidget(splitter)
+        layout.addWidget(self.status_bar)
 
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
 
         container = QWidget()
+        self.mainwidget = container
         container.setObjectName("Container")
-        container.setStyleSheet("""#Container {
-            background: #262728 ;
-            border-radius: 10px;
-        }""")
-        # background: #e6e6e6 ;
         container.setLayout(layout)
+        self.updateStyle()  # apply stylesheets for widget defaults
 
         self.input.installEventFilter(self)
         QShortcut(QKeySequence('Ctrl+D'),
@@ -619,9 +672,11 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }}
             """)
-                # background-color: {self.settings.color_background};
-        # padding: 5px 5px 7px 5px;
-        #         border: none;
+        self.mainwidget.setStyleSheet(f"#Container {{ border-radius: 10px; background: {self.settings.color_background} ;}}")
+        self.status.setStyleSheet(f"QLabel {{font-size: 12pt; color: {self.settings.color_status}; }}")
+        self.statslabel.setStyleSheet(f"QLabel {{font-size: 12pt; color: {self.settings.color_stats}; }}")
+        self.title_bar.title.setStyleSheet(f"QLabel {{font-size: 12pt; color: {self.settings.color_menu}; }}")
+        self.title_bar.updateButtonStyle()
 
     def getNotepadText(self, num):
         return "\n".join(self.notepads[num])
@@ -707,6 +762,132 @@ class MainWindow(QMainWindow):
         # if action == quitAct:
         #     QApplication.instance().quit()
         return True
+    def openSettings(self):
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Settings")
+        #
+        tab_widget = QTabWidget()
+
+        settings_pane = QWidget()
+        tab_widget.addTab(settings_pane, "Settings")
+
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(10, 10, 10, 10)
+
+        row1 = QHBoxLayout()
+        layout.setSpacing(0)
+        row1.setContentsMargins(0, 0, 0, 0)
+        row2 = QHBoxLayout()
+        last_row_spacer = QHBoxLayout()
+        layout.addLayout(row1)
+        layout.addLayout(row2)
+        layout.addLayout(last_row_spacer)
+        settings_pane.setLayout(layout)
+
+        font_group = QGroupBox("Font Options")
+        row1.addWidget(font_group)
+        font_hbox1 = QHBoxLayout()
+        font_hbox1.setContentsMargins(5, 5, 5, 5)
+        font_group.setLayout(font_hbox1)
+
+        fontBox = QFontComboBox(self)
+        fontBox.setCurrentFont(QFont(self.settings.font))
+        fontBox.setMinimumContentsLength(8)
+        fontBox.currentFontChanged.connect(self.changeFont)
+        font_hbox1.addWidget(fontBox)
+
+        fontSizeBox = QComboBox(self)
+        fontSizeBox.setEditable(True)
+        fontSizeBox.setMinimumContentsLength(2)
+        font_sizes = [str(i) for i in range(8, 80, 2)]
+        for i in font_sizes:
+            fontSizeBox.addItem(i)
+        if str(self.settings.font_size) in font_sizes:
+            index = font_sizes.index(str(self.settings.font_size))
+            fontSizeBox.setCurrentIndex(index)
+        else:
+            fontSizeBox.setCurrentText(str(self.settings.font_size))
+        fontSizeBox.currentTextChanged.connect(self.changeFontSize)
+        font_hbox1.addWidget(fontSizeBox)
+
+        boldBtn = QPushButton("Bold")
+        boldBtn.setCheckable(True)
+        boldBtn.setChecked(True if self.settings.font_bold else False)
+        boldBtn.setMaximumWidth(int(self.width()/4))
+        boldBtn.clicked.connect(self.changeFontBold)
+        font_hbox1.addWidget(boldBtn)
+
+        theme_group = QGroupBox("Theme")
+        row1.addWidget(theme_group)
+        theme_hbox1 = QHBoxLayout()
+        theme_hbox1.setContentsMargins(5, 5, 5, 5)
+        theme_group.setLayout(theme_hbox1)
+
+        themeBox = QComboBox(self)
+        themeBox.setEditable(False)
+        themeBox.setMinimumContentsLength(8)
+        themes = list(default_themes.keys())
+        for i in themes:
+            themeBox.addItem(i)
+        index = themes.index(self.settings.theme)  # type: ignore
+        themeBox.setCurrentIndex(index)
+        themeBox.currentTextChanged.connect(self.changeTheme)
+        theme_hbox1.addWidget(themeBox)
+        spacer1 = QWidget()
+        spacer1.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        row1.addWidget(spacer1)
+
+        num_group = QGroupBox("Number Format")
+        row2.addWidget(num_group)
+        num_hbox1 = QHBoxLayout()
+        num_hbox1.setContentsMargins(5, 5, 5, 5)
+        num_group.setLayout(num_hbox1)
+
+        for label in ('Auto', 'Fix'):
+            numbtn = QRadioButton(label)
+            if label == self.settings.num_fmt:
+                numbtn.setChecked(True)
+            numbtn.toggled.connect(self.changeNumFormat)
+            num_hbox1.addWidget(numbtn)
+
+        self.digitsLabel = QLabel(self.getDigitsLabel())
+        num_hbox1.addWidget(self.digitsLabel)
+
+        self.digitsSpinBox = QSpinBox()
+        self.digitsSpinBox.setMaximum(16)
+        self.digitsSpinBox.setMinimum(1)
+        self.digitsSpinBox.setValue(int(self.settings.num_digits))  # type: ignore
+        self.digitsSpinBox.valueChanged.connect(self.changeNumDigits)
+        num_hbox1.addWidget(self.digitsSpinBox)
+
+        self.alignment = QCheckBox('Align Decimals', self)
+        self.alignment.setChecked(True if self.settings.align else False)
+        self.changeAlignment()
+        self.alignment.stateChanged.connect(self.changeAlignment)
+        num_hbox1.addWidget(self.alignment)
+
+        spacer2 = QWidget()
+        spacer2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        row2.addWidget(spacer2)
+
+        spacer_last = QWidget()
+        spacer_last.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        last_row_spacer.addWidget(spacer_last)
+
+        #=========== Unit pane ===============
+        unit_pane = QWidget()
+        tab_widget.addTab(unit_pane, "Units")
+
+        # #=========== Functions pane ===============
+        # function_pane = QWidget()
+        # tab_widget.addTab(function_pane, "Functions")
+
+        dlg.setLayout(QVBoxLayout())
+        dlg.layout().addWidget(tab_widget)
+        # dlg.setBaseSize(500,500)
+        dlg.setGeometry(self.geometry().topLeft().x(), self.geometry().topLeft().y(), 500, 500)
+        dlg.exec()
 
     def showLicenses(self):
         dlg = QDialog(self)
@@ -811,9 +992,6 @@ class MainWindow(QMainWindow):
             self.settings, tuple(self.notepad.parser.vars.keys()), self.input.document())
         self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(self.settings, self.output.document())
         self.updateStyle()
-
-    def openSettings(self):
-        print("SETTINGS!")
 
     def saveCurrentNotepad(self):
         self.notepads[self.current] = self.input.toPlainText().split("\n")  # type: ignore
