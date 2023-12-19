@@ -150,6 +150,7 @@ default_settings = dict(
     font_size=16,
     font_bold=False,
     align=False,
+    line_spacing=1.0,
 ) | default_themes['Monokai']
 
 default_notepads = {
@@ -311,17 +312,16 @@ class BeeCalcStatusBar(QWidget):
         super().__init__(parent)
         self.initial_pos = None
         status_bar_layout = QHBoxLayout(self)
-        status_bar_layout.setContentsMargins(1, 1, 1, 1)
+        status_bar_layout.setContentsMargins(4, 4, 4, 4)
         status_bar_layout.setSpacing(2)
 
         self.status = QLabel("Status", self)
-        self.status.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.status.setAlignment(Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
         self.status.setStyleSheet(f"QLabel {{font-size: 12pt; color: {parent.settings.color_status}; }}")
 
         self.statslabel = QLabel("")
-        self.statslabel.setFixedHeight(20)
-        self.statslabel.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.statslabel.setAlignment(Qt.AlignmentFlag.AlignRight)
+        # self.statslabel.setFixedHeight(20)
+        self.statslabel.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter)
         self.statslabel.setStyleSheet(f"QLabel {{font-size: 12pt; color: {parent.settings.color_stats}; }}")
 
         status_bar_layout.addWidget(self.status)
