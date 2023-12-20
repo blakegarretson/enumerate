@@ -38,7 +38,7 @@ from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, Q
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTableWidgetItem,
                              QMainWindow, QMessageBox, QPushButton, QTableWidget, QPlainTextEdit,
                              QRadioButton, QSizePolicy, QSpinBox, QSplitter, QHeaderView,
-                             QStatusBar, QStyle, QTextEdit, QToolBar, QToolButton,QSizePolicy,
+                             QStatusBar, QStyle, QTextEdit, QToolBar, QToolButton, QSizePolicy,
                              QVBoxLayout, QWidget, QScrollBar)
 
 import beenotepad
@@ -316,16 +316,16 @@ class BeeCalcStatusBar(QWidget):
         status_bar_layout.setSpacing(2)
 
         self.status = QLabel("Status", self)
-        self.status.setAlignment(Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
-        self.status.setStyleSheet(f"QLabel {{font-size: 12pt; color: {parent.settings.color_status}; }}")
+        self.status.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.status.setStyleSheet(
+            f"QLabel {{font-size: 12pt; color: {parent.settings.color_status}; }}")
 
-        self.statslabel = QLabel("")
         # self.statslabel.setFixedHeight(20)
-        self.statslabel.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter)
-        self.statslabel.setStyleSheet(f"QLabel {{font-size: 12pt; color: {parent.settings.color_stats}; }}")
+        # self.stats_button.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter)
+        # self.statslabel.setStyleSheet(f"QLabel {{font-size: 12pt; color: {parent.settings.color_stats}; }}")
 
         status_bar_layout.addWidget(self.status)
-        status_bar_layout.addWidget(self.statslabel)
 
     def showMessage(self, msg, duration=3000):
         self.status.setText(msg)
@@ -334,9 +334,9 @@ class BeeCalcStatusBar(QWidget):
         self.timer.timeout.connect(self.clearMessage)
         self.timer.start(duration)
 
-
     def clearMessage(self):
         self.status.setText("")
+
 
 class BeeCalcTitleBar(QWidget):
     def __init__(self, parent):
@@ -369,6 +369,11 @@ class BeeCalcTitleBar(QWidget):
         # self.settings_button.clicked.connect(parent.settingsMenu)
         self.settings_button.setToolTip("Settings menu")
 
+        self.stats_button = QToolButton(self)
+        self.stats_button.setText("μ")
+        self.stats_button.clicked.connect(parent.showStats)
+        self.stats_button.setToolTip("Show stats for current notebook")
+
         self.pin_button = QToolButton(self)
         self.pin_button.setText("○")
         # self.pin_button.setText("⦿")
@@ -383,13 +388,15 @@ class BeeCalcTitleBar(QWidget):
         self.min_button = QToolButton(self)
         self.min_button.setText('_')
         self.min_button.clicked.connect(self.window().showMinimized)
+        self.min_button.setToolTip("Minimize")
 
         self.close_button = QToolButton(self)
         self.close_button.setText("×")
-        # self.close_button.setText("╳")
         self.close_button.clicked.connect(self.window().close)
+        self.close_button.setToolTip("Close BeeCalc")
 
         self.buttons = []
+
         def add_button(button, fontsize=16, weight='normal'):
             self.buttons.append((button, fontsize, weight))
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -401,6 +408,7 @@ class BeeCalcTitleBar(QWidget):
         add_button(self.add_button)
         add_button(self.trash_button)
         add_button(self.settings_button, 20)
+        add_button(self.stats_button)
         print(self.settings_button.styleSheet())
 
         self.title = QLabel(parent.windowTitle(), self)
@@ -415,12 +423,13 @@ class BeeCalcTitleBar(QWidget):
         add_button(self.close_button, 18, 'bold')
         self.updateButtonStyle()
         # print("<<",self.close_button.fontInfo().pointSize(), self.close_button.fontInfo().pixelSize(), self.close_button.fontInfo().fixedPitch() )
+
     def updateButtonStyle(self):
         for button, fontsize, weight in self.buttons:
             button.setStyleSheet(
                 f"QToolButton {{ border: none; padding: 2px; font-size: {fontsize}pt; color: {self.parent.settings.color_status}; font-weight: {weight}; }}"
             )
-            
+
 
 class MainWindow(QMainWindow):
     re_zeropoint = re.compile(r"[. ]|$")
@@ -438,7 +447,7 @@ class MainWindow(QMainWindow):
         # Status Bar
         self.status_bar = BeeCalcStatusBar(self)
         self.status = self.status_bar.status
-        self.statslabel = self.status_bar.statslabel
+        self.stats = {}
         # self.status_bar = QStatusBar(self)
         # self.setStatusBar(self.status_bar)
         # self.statslabel = QLabel("")
@@ -494,6 +503,7 @@ class MainWindow(QMainWindow):
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.input.horizontalScrollBar().setFixedHeight(0)
         self.output.horizontalScrollBar().setFixedHeight(0)
+        self.styleScrollbar()
 
         # need this for tab completion
         self.tabPopupVisable = False
@@ -511,7 +521,8 @@ class MainWindow(QMainWindow):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.title_bar)
         # splitter.setAutoFillBackground(True)
-        splitter.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding)
+        splitter.setSizePolicy(QSizePolicy.Policy.Expanding,
+                               QSizePolicy.Policy.Expanding)
         layout.addWidget(splitter)
         layout.addWidget(self.status_bar)
 
@@ -548,8 +559,72 @@ class MainWindow(QMainWindow):
         cursor.setPosition(len(input_text))
         self.input.setTextCursor(cursor)
 
-    def help(self):
-        print("Help")
+    def styleScrollbar(self):
+        self.outputScrollbar.setStyleSheet("""
+            QScrollBar:vertical {
+                border: 1px solid #999999;
+                background:white;
+                width:10px;
+                margin: 0px 0px 0px 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop: 0 rgb(32, 47, 130), stop: 0.5 rgb(32, 47, 130), stop:1 rgb(32, 47, 130));
+                min-height: 0px;
+            }
+            QScrollBar::add-line:vertical {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop: 0 rgb(32, 47, 130), stop: 0.5 rgb(32, 47, 130),  stop:1 rgb(32, 47, 130));
+                height: 0px;
+                subcontrol-position: bottom;
+                subcontrol-origin: margin;
+            }
+            QScrollBar::sub-line:vertical {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop: 0  rgb(32, 47, 130), stop: 0.5 rgb(32, 47, 130),  stop:1 rgb(32, 47, 130));
+                height: 0 px;
+                subcontrol-position: top;
+                subcontrol-origin: margin;
+            }
+        """)
+
+    def showStats(self):
+        cmenu = QMenu(self)
+        cmenu.setStyleSheet(
+                f"""
+                QMenu {{
+                    background-color: {self.settings.color_background};   
+                }}
+                QMenu::item {{
+                    background-color: transparent;
+                    color: {self.settings.color_menu};
+                }}
+                QMenu::item:selected {{ 
+                    background-color: transparent;
+                    color: {self.settings.color_text};
+                }}
+                """)
+
+        for name, func in (('sum', self.copySum), ('average', self.copyAverage), ('count', self.copyCount)):
+            item = cmenu.addAction(f"{name}: {self.stats[name]}")
+            item.triggered.connect(func)
+            item.setToolTip("Copy to clipboard")
+
+        action = cmenu.exec(self.cursor().pos())
+        self.status_bar.showMessage("Copied stat to clipboard")
+        return True
+
+    def copySum(self):
+        cb = QApplication.clipboard()
+        cb.setText(self.stats['sum'])
+
+    def copyAverage(self):
+        cb = QApplication.clipboard()
+        cb.setText(self.stats['average'])
+
+    def copyCount(self):
+        cb = QApplication.clipboard()
+        cb.setText(self.stats['count'])
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -610,15 +685,18 @@ class MainWindow(QMainWindow):
             print(result.groupdict())
             print(result.start(), result.pos, result.span())
             word = result.groups()[1]
-            variables = [x for x in self.notepad.parser.vars.keys() if x.startswith(word)]
-            constants = [x for x in self.notepad.parser.constants.keys() if x.startswith(word)]
+            variables = [x for x in self.notepad.parser.vars.keys()
+                         if x.startswith(word)]
+            constants = [
+                x for x in self.notepad.parser.constants.keys() if x.startswith(word)]
             funcs = [f'{x}(' for x in function_list if word in x]
             units = [x for x in unit_list if word in x]
             wordlist = variables + constants + funcs + units
             priority = [w for w in wordlist if w.startswith(word)]
             rest = [w for w in wordlist if not w.startswith(word)]
             wordlist = priority + rest
-            start, end = position - len(line) + result.start() + len(result.groups()[0]), position
+            start, end = position - \
+                len(line) + result.start() + len(result.groups()[0]), position
             self.replace_position = (start, end)
 
             tabpopup = QComboBox(self.input)
@@ -635,7 +713,8 @@ class MainWindow(QMainWindow):
             if word in self.notepad.parser.functions:
                 func = self.notepad.parser.functions[word]
                 helptext = pydoc.plain(pydoc.render_doc(func, title="%s>>>>"))
-                helptext = helptext[helptext.find('>>>>')+4:].strip().replace(", /)\n",')\n')
+                helptext = helptext[helptext.find(
+                    '>>>>')+4:].strip().replace(", /)\n", ')\n')
                 QToolTip.showText(self.pos() + self.status_bar.pos(), helptext)
 
     def tabReplaceWord(self):
@@ -672,10 +751,12 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }}
             """)
-        self.mainwidget.setStyleSheet(f"#Container {{ border-radius: 10px; background: {self.settings.color_background} ;}}")
-        self.status.setStyleSheet(f"QLabel {{font-size: 12pt; color: {self.settings.color_status}; }}")
-        self.statslabel.setStyleSheet(f"QLabel {{font-size: 12pt; color: {self.settings.color_stats}; }}")
-        self.title_bar.title.setStyleSheet(f"QLabel {{font-size: 12pt; color: {self.settings.color_menu}; }}")
+        self.mainwidget.setStyleSheet(
+            f"#Container {{ border-radius: 10px; background: {self.settings.color_background} ;}}")
+        self.status.setStyleSheet(
+            f"QLabel {{font-size: 12pt; color: {self.settings.color_status}; }}")
+        self.title_bar.title.setStyleSheet(
+            f"QLabel {{font-size: 12pt; color: {self.settings.color_menu}; }}")
         self.title_bar.updateButtonStyle()
 
     def getNotepadText(self, num):
@@ -699,9 +780,11 @@ class MainWindow(QMainWindow):
         self.changeNotepad()
 
     def deleteNotepad(self):
-        confirm = ConfirmationDialog(self, "Delete?", "Delete current notepad?").exec()
+        confirm = ConfirmationDialog(
+            self, "Delete?", "Delete current notepad?").exec()
         if confirm:
-            self.notepads = self.notepads[:self.current] + self.notepads[self.current+1:]
+            self.notepads = self.notepads[:self.current] + \
+                self.notepads[self.current+1:]
             if not self.notepads:
                 self.notepads = ['']
             self.notepadBox.setCurrentIndex(self.current-1)
@@ -719,6 +802,7 @@ class MainWindow(QMainWindow):
                 self.outputScrollbar.setValue(value)
             elif sender == self.outputScrollbar:
                 self.inputScrollbar.setValue(value)
+
     def populateNotepadBox(self):
         self.notepadBox.clear()
         for i in self.getNotepadHeaders():
@@ -744,10 +828,23 @@ class MainWindow(QMainWindow):
             self.current = self.notepadBox.currentIndex()
             self.input.setText(self.getNotepadText(self.current))
             self.processNotepad()
+
     def helpPopupMenu(self, event):
-        # print(event)
-        # obj = self.sender()
         cmenu = QMenu(self)
+        cmenu.setStyleSheet(
+                f"""
+                QMenu {{
+                    background-color: {self.settings.color_background};   
+                }}
+                QMenu::item {{
+                    background-color: transparent;
+                    color: {self.settings.color_menu};
+                }}
+                QMenu::item:selected {{ 
+                    background-color: transparent;
+                    color: {self.settings.color_text};
+                }}
+                """)
         basicAct = cmenu.addAction("Basic Usage")
         advAct = cmenu.addAction("Advanced Usage")
         webAct = cmenu.addAction("BeeCalc Website")
@@ -755,13 +852,9 @@ class MainWindow(QMainWindow):
         licAct.triggered.connect(self.showLicenses)
         aboutAct = cmenu.addAction("About")
         aboutAct.triggered.connect(self.showAboutPopup)
-        # quitAct = cmenu.addAction("Quit")
         action = cmenu.exec(self.cursor().pos())
-        # action = cmenu.exec(self.mapToGlobal(self.cursor().pos()))
-
-        # if action == quitAct:
-        #     QApplication.instance().quit()
         return True
+
     def openSettings(self):
         dlg = QDialog(self)
         dlg.setWindowTitle("Settings")
@@ -835,7 +928,8 @@ class MainWindow(QMainWindow):
         themeBox.currentTextChanged.connect(self.changeTheme)
         theme_hbox1.addWidget(themeBox)
         spacer1 = QWidget()
-        spacer1.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        spacer1.setSizePolicy(QSizePolicy.Policy.Expanding,
+                              QSizePolicy.Policy.Fixed)
         row1.addWidget(spacer1)
 
         num_group = QGroupBox("Number Format")
@@ -857,7 +951,8 @@ class MainWindow(QMainWindow):
         self.digitsSpinBox = QSpinBox()
         self.digitsSpinBox.setMaximum(16)
         self.digitsSpinBox.setMinimum(1)
-        self.digitsSpinBox.setValue(int(self.settings.num_digits))  # type: ignore
+        self.digitsSpinBox.setValue(
+            int(self.settings.num_digits))  # type: ignore
         self.digitsSpinBox.valueChanged.connect(self.changeNumDigits)
         num_hbox1.addWidget(self.digitsSpinBox)
 
@@ -868,14 +963,16 @@ class MainWindow(QMainWindow):
         num_hbox1.addWidget(self.alignment)
 
         spacer2 = QWidget()
-        spacer2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        spacer2.setSizePolicy(QSizePolicy.Policy.Expanding,
+                              QSizePolicy.Policy.Fixed)
         row2.addWidget(spacer2)
 
         spacer_last = QWidget()
-        spacer_last.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        spacer_last.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         last_row_spacer.addWidget(spacer_last)
 
-        #=========== Unit pane ===============
+        # =========== Unit pane ===============
         unit_pane = QWidget()
         tab_widget.addTab(unit_pane, "Units")
 
@@ -886,7 +983,8 @@ class MainWindow(QMainWindow):
         dlg.setLayout(QVBoxLayout())
         dlg.layout().addWidget(tab_widget)
         # dlg.setBaseSize(500,500)
-        dlg.setGeometry(self.geometry().topLeft().x(), self.geometry().topLeft().y(), 500, 500)
+        dlg.setGeometry(self.geometry().topLeft().x(),
+                        self.geometry().topLeft().y(), 500, 500)
         dlg.exec()
 
     def showLicenses(self):
@@ -905,13 +1003,14 @@ class MainWindow(QMainWindow):
             tab_widget.addTab(tmp, name)
             print(filename)
             lfile = QFile(":"+filename)
-            lfile.open(QFile.OpenModeFlag.ReadOnly|QFile.OpenModeFlag.Text)
+            lfile.open(QFile.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text)
             tmp.setPlainText(QTextStream(lfile).readAll())
 
         dlg.setLayout(QVBoxLayout())
         dlg.layout().addWidget(tab_widget)
         # dlg.setBaseSize(500,500)
-        dlg.setGeometry(self.geometry().topLeft().x(), self.geometry().topLeft().y(), 500, 500)
+        dlg.setGeometry(self.geometry().topLeft().x(),
+                        self.geometry().topLeft().y(), 500, 500)
         dlg.exec()
 
         # msg = QMessageBox(text="BeeCalc",parent=self)
@@ -938,11 +1037,12 @@ class MainWindow(QMainWindow):
         msg.setDefaultButton(QMessageBox.StandardButton.Ok)
 
         msg.setInformativeText("Copyright (C) 2023  Blake T. Garretson\n\n" +
-                            "http://www.beecalc.com\n\nEmail comments to blake@beecalc.com")
+                               "http://www.beecalc.com\n\nEmail comments to blake@beecalc.com")
         msg.exec()
 
     def toggleStayOnTop(self):
-        self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowStaysOnTopHint)
+        self.setWindowFlags(self.windowFlags() ^
+                            Qt.WindowType.WindowStaysOnTopHint)
         self.show()
         if bool(self.windowFlags() & Qt.WindowType.WindowStaysOnTopHint):
             self.title_bar.pin_button.setText("⦿")
@@ -963,7 +1063,8 @@ class MainWindow(QMainWindow):
         self.settings.num_fmt = btn.text()  # type: ignore
         self.settings.num_digits = self.getDigitsStr()
         self.digitsLabel.setText(self.getDigitsLabel())
-        self.digitsSpinBox.setValue(int(self.settings.num_digits))  # type: ignore
+        self.digitsSpinBox.setValue(
+            int(self.settings.num_digits))  # type: ignore
         self.processNotepad()
 
     def changeNumDigits(self, value):
@@ -974,6 +1075,7 @@ class MainWindow(QMainWindow):
         else:
             self.settings.num_fixdigits = value
         self.processNotepad()
+
     def getDigitsLabel(self):
         if self.settings.num_fmt == 'Auto':
             return " Significant Digits: "
@@ -990,11 +1092,13 @@ class MainWindow(QMainWindow):
         self.settings = settingsdict(self.settings | default_themes[theme])
         self.syntax_highlighter_in = BeeInputSyntaxHighlighter(
             self.settings, tuple(self.notepad.parser.vars.keys()), self.input.document())
-        self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(self.settings, self.output.document())
+        self.syntax_highlighter_out = BeeOutputSyntaxHighlighter(
+            self.settings, self.output.document())
         self.updateStyle()
 
     def saveCurrentNotepad(self):
-        self.notepads[self.current] = self.input.toPlainText().split("\n")  # type: ignore
+        self.notepads[self.current] = self.input.toPlainText().split(
+            "\n")  # type: ignore
 
     def updateFont(self):
         font = QFont()
@@ -1043,21 +1147,26 @@ class MainWindow(QMainWindow):
                     if (not isinstance(out, complex)) and math.isclose(out, 0, abs_tol=1e-15):
                         out = 0
                     if isinstance(out, (float, unitclass.Unit)):
-                        fmt_str = '{:.'+self.settings.num_digits+num_formats[self.settings.num_fmt]+'}'  # type: ignore
+                        # type: ignore
+                        fmt_str = '{:.'+self.settings.num_digits + \
+                            num_formats[self.settings.num_fmt]+'}'
                         text = fmt_str.format(out)
-                        zeropt = len(text) - self.re_zeropoint.search(text).start()
+                        zeropt = len(text) - \
+                            self.re_zeropoint.search(text).start()
                         if zeropt > widest_entry:
                             widest_entry = zeropt
                         outtext = (text, zeropt)
                     elif isinstance(out, Fraction):
                         text = str(out)
-                        zeropt = len(text) - self.re_zeropoint.search(text).start()
+                        zeropt = len(text) - \
+                            self.re_zeropoint.search(text).start()
                         if zeropt > widest_entry:
                             widest_entry = zeropt
                         outtext = (text, zeropt)
                     else:
                         text = f'{out}'
-                        zeropt = len(text) - self.re_zeropoint.search(text).start()
+                        zeropt = len(text) - \
+                            self.re_zeropoint.search(text).start()
                         if zeropt > widest_entry:
                             widest_entry = zeropt
                         outtext = (text, zeropt)
@@ -1071,7 +1180,7 @@ class MainWindow(QMainWindow):
                     self.notepad.parser.vars['ans'] = out
             except SyntaxError as err:
                 errstr, errored = str(err), True
-                print('err object:', errstr)
+                # print('err object:', errstr)
                 if errstr.startswith("'(' was never closed"):
                     out_msg = "<Unclosed '('>"
                     errstr = "'(' was never closed"
@@ -1088,7 +1197,7 @@ class MainWindow(QMainWindow):
                 errstr = "Divide by zero not possible"
             except unitclass.InconsistentUnitsError as err:
                 errstr, errored = str(err), True
-                print('err2', time.asctime())
+                # print('err2', time.asctime())
                 out_msg = '<Inconsistent units>'
             except ValueError as err:
                 errstr, errored = str(err), True
@@ -1100,18 +1209,18 @@ class MainWindow(QMainWindow):
                     errstr = errstr
             except unitclass.UnavailableUnit as err:
                 errstr, errored = str(err), True
-                print('err2', time.asctime())
+                # print('err2', time.asctime())
                 out_msg = '<No unit/var>'
                 errstr = f"{errstr.split()[1]}: no such unit, variable, or constant"
             except (NameError, TypeError,
                     AttributeError, Exception) as err:
-                print('err1', time.asctime())
+                # print('err1', time.asctime())
                 errstr, errored = str(err), True
                 out_msg = '?'
 
             if errored:
-                print('here1:', out_msg)
-                print('here2:', errstr)
+                # print('here1:', out_msg)
+                # print('here2:', errstr)
                 any_errored = True
                 self.status_bar.showMessage(errstr, 3000)
                 outtext = (out_msg, len(out_msg))
@@ -1137,7 +1246,8 @@ class MainWindow(QMainWindow):
         self.keepScrollSynced = True
         final_vars = tuple(self.notepad.parser.vars.keys())
         if initial_vars != final_vars:
-            self.syntax_highlighter_in.updateVars(self.notepad.parser.vars.keys())
+            self.syntax_highlighter_in.updateVars(
+                self.notepad.parser.vars.keys())
             self.syntax_highlighter_in.rehighlight()
         # self.syntax_highlighter_in = BeeInputSyntaxHighlighter(self.settings,tuple(self.notepad.parser.vars.keys()), self.input.document())
         # self.input.textChanged.connect(self.processNotepad)
@@ -1147,8 +1257,9 @@ class MainWindow(QMainWindow):
             avg = f'{sum_/n:g}'
         else:
             avg = 'N/A'
-        self.statslabel.setText(f'n={n} sum={sum_:g} avg={avg}')
-        print('processed', time.asctime())
+        self.stats = {'count': f'{n}', 'sum': f'{sum_:g}', 'average': f'{avg}'}
+        # print('processed', time.asctime())
+
 
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
