@@ -50,6 +50,7 @@ class BeeParser():
     double_in_re = re.compile(r" in in\s+(?!$)")
     # re_frac = re.compile(r'frac\(\s*('+num_re+r')\s*\)')
     re_frac = re.compile(r'frac\(\s*((?:-|\+)*\d*\.*\d+[eE]*(?:-|\+)*\d*)\s*\)')
+    no_leading_zero_decimal = re.compile(r"(?<!\d)\.")
 
     to_specials = str.maketrans("0123456789*", "⁰¹²³⁴⁵⁶⁷⁸⁹·")
     from_specials = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⋅·×", "0123456789***")
@@ -210,6 +211,12 @@ class BeeParser():
 
         text = text.replace('@', 'ans')
         text = self.double_in_re.sub(' in to ', text)
+
+        # add leading zeros 
+        #   no leading zero with no space between unit leads to error: .34mm 
+        #   ('0.34mm' and '.34 mm' are okay)
+        while match := self.no_leading_zero_decimal.search(text):
+            text = text[:match.start()] + '0.' + text[match.end():]
 
         # process 'of' first so % doesn't get confused with the % unit
         if match := self.of_re.search(text):

@@ -312,7 +312,7 @@ class BeeCalcStatusBar(QWidget):
         super().__init__(parent)
         self.initial_pos = None
         status_bar_layout = QHBoxLayout(self)
-        status_bar_layout.setContentsMargins(4, 4, 4, 4)
+        status_bar_layout.setContentsMargins(4, 2, 4, 2)
         status_bar_layout.setSpacing(2)
 
         self.status = QLabel("Status", self)
