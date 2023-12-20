@@ -560,32 +560,29 @@ class MainWindow(QMainWindow):
         self.input.setTextCursor(cursor)
 
     def styleScrollbar(self):
-        self.outputScrollbar.setStyleSheet("""
-            QScrollBar:vertical {
-                border: 1px solid #999999;
-                background:white;
+        self.outputScrollbar.setStyleSheet(f"""
+            QScrollBar {{
+                background:{self.settings.color_background};
                 width:10px;
-                margin: 0px 0px 0px 0px;
-            }
-            QScrollBar::handle:vertical {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop: 0 rgb(32, 47, 130), stop: 0.5 rgb(32, 47, 130), stop:1 rgb(32, 47, 130));
+                margin: 1px 1px 1px 1px;
+            }}
+            QScrollBar::handle {{
+                background: {self.settings.color_menu};
                 min-height: 0px;
-            }
-            QScrollBar::add-line:vertical {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop: 0 rgb(32, 47, 130), stop: 0.5 rgb(32, 47, 130),  stop:1 rgb(32, 47, 130));
+                border-radius: 4px;
+            }}
+            QScrollBar::add-line {{
+                background: #ff0000;
                 height: 0px;
                 subcontrol-position: bottom;
                 subcontrol-origin: margin;
-            }
-            QScrollBar::sub-line:vertical {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop: 0  rgb(32, 47, 130), stop: 0.5 rgb(32, 47, 130),  stop:1 rgb(32, 47, 130));
-                height: 0 px;
+            }}
+            QScrollBar::sub-line {{
+                background: #00ff33;
+                height: 0px;
                 subcontrol-position: top;
                 subcontrol-origin: margin;
-            }
+            }}
         """)
 
     def showStats(self):
@@ -758,6 +755,7 @@ class MainWindow(QMainWindow):
         self.title_bar.title.setStyleSheet(
             f"QLabel {{font-size: 12pt; color: {self.settings.color_menu}; }}")
         self.title_bar.updateButtonStyle()
+        self.styleScrollbar()
 
     def getNotepadText(self, num):
         return "\n".join(self.notepads[num])
