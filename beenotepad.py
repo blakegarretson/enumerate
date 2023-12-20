@@ -279,7 +279,7 @@ class BeeParser():
             print("Preprocessed text:", text)
             print(ast.dump(ast.parse(text), indent=2))
 
-        print('evaluate:', text)
+        # print('evaluate:', text)
         value = self.evaluate(text)
         return value
 
