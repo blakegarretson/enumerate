@@ -28,18 +28,18 @@ import pydoc
 from pathlib import Path
 from fractions import Fraction
 import unitclass
-from PyQt6.QtCore import (QCoreApplication, QEvent, QMargins, QPoint, QFile, QTextStream,
+from PyQt6.QtCore import (QEvent, QFile, QTextStream,
                           QRegularExpression, QSize, Qt, QTimer)
-from PyQt6.QtGui import (QAction, QColor, QFont, QFontDatabase, QIcon,
+from PyQt6.QtGui import (QColor, QFont, QFontDatabase, QIcon,
                          QKeySequence, QPixmap, QShortcut, QSyntaxHighlighter,
                          QTextCharFormat, QTextOption, QTextCursor)
-from PyQt6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QToolTip,
-                             QDialog, QDialogButtonBox, QFontComboBox, QFrame, QMenu, QTabWidget,
-                             QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTableWidgetItem,
-                             QMainWindow, QMessageBox, QPushButton, QTableWidget, QPlainTextEdit,
-                             QRadioButton, QSizePolicy, QSpinBox, QSplitter, QHeaderView,
-                             QStatusBar, QStyle, QTextEdit, QToolBar, QToolButton, QSizePolicy,
-                             QVBoxLayout, QWidget, QScrollBar)
+from PyQt6.QtWidgets import (QApplication, QCheckBox, QComboBox, QToolTip,
+                             QDialog, QDialogButtonBox, QFontComboBox, QMenu, QTabWidget,
+                             QGroupBox, QHBoxLayout, QLabel,
+                             QMainWindow, QMessageBox, QPushButton, QPlainTextEdit,
+                             QRadioButton, QSizePolicy, QSpinBox, QSplitter,
+                             QTextEdit, QToolButton, QSizePolicy,
+                             QVBoxLayout, QWidget)
 
 import beenotepad
 import time
