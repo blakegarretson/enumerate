@@ -1,3 +1,5 @@
 # BeeCalc
 
-Placeholder for BeeCalc website.
+## Heading
+
+Placeholder for **BeeCalc** website.
